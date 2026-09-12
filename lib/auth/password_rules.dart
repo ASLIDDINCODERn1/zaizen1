@@ -30,8 +30,8 @@ class PasswordRules {
     'abc12345',
   };
 
-  static final _emailRe = RegExp(r'^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$');
-  static final _letterRe = RegExp(r'[A-Za-z]');
+  static final _emailRe = RegExp(r'[^\s@]+@[^\s@]+\.[^\s@]{2,}');
+  static final _letterRe = RegExp(r'[A-Za-zА-яЁёЎўҚқҒғҲҳ]');
   static final _digitRe = RegExp(r'\d');
 
   static String? emailError(String email) {
