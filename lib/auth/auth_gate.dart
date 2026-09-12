@@ -4,6 +4,7 @@ import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/pages/homepage.dart';
 import 'package:zaizen/pages/login.dart';
 import 'package:zaizen/pages/update_password.dart';
+import 'package:zaizen/ui/language_picker_bar.dart';
 
 /// Yangi foydalanuvchi login qilmaguncha ichkariga kira olmaydi.
 /// Session saqlanadi — ilovani qayta ochganda avtomatik kiradi.
@@ -29,8 +30,33 @@ class AuthGate extends StatelessWidget {
         if (session != null) {
           return const HomeScreen();
         }
-        return const LoginScreen();
+        return const _LoginWithLanguage();
       },
+    );
+  }
+}
+
+class _LoginWithLanguage extends StatelessWidget {
+  const _LoginWithLanguage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const LoginScreen(),
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 6, 16, 0),
+              child: LanguagePickerBar(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
