@@ -2,14 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:zaizen/locale_provider.dart';
-import 'package:zaizen/pages/profile_menus/profile_sub.dart';
+import 'package:zaizen/pages/profile_menus/language_screen.dart';
+import 'package:zaizen/pages/profile_menus/profile_sub.dart' hide LanguageScreen;
 import 'package:zaizen/pages/profile_menus/security_tab.dart';
 import 'login.dart' show AppColors;
 
-// Alohida sub-ekranlar
-
-
-/// ─── ALOHIDA AJRATILGAN PROFIL TABI ─────────────────────────────────────────
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
 
@@ -20,7 +17,6 @@ class ProfileTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
       physics: const BouncingScrollPhysics(),
       children: [
-        // Avatar va Ism
         Center(
           child: Column(
             children: [
@@ -61,8 +57,6 @@ class ProfileTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 26),
-
-        // Profil bo'limlari kartasi
         _CardWrapper(
           child: Column(
             children: [
@@ -124,8 +118,6 @@ class ProfileTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-
-        // Chiqish
         _CardWrapper(
           child: _SettingsItem(
             icon: CupertinoIcons.square_arrow_right,
