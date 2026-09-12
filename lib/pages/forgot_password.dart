@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/password_rules.dart';
+import 'package:zaizen/l10n/l10n_scope.dart';
 import 'package:zaizen/pages/login.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -52,8 +53,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       await AuthService.instance.resetPassword(_email.text);
       setState(() {
         _ok = true;
-        _message =
-            'Zaizen nomidan tiklash havolasi yuborildi. Pochta qutisini tekshiring.';
+        _message = L.read(context).authResetSent;
       });
     } catch (e) {
       setState(() {
@@ -67,6 +67,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
   @override
   Widget build(BuildContext context) {
+    final s = L.of(context);
     final fade = CurvedAnimation(parent: _in, curve: Curves.easeOutCubic);
     return Scaffold(
       backgroundColor: AppColors.bgBottom,
@@ -77,7 +78,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           icon: const Icon(CupertinoIcons.back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Parolni tiklash', style: TextStyle(color: Colors.white)),
+        title: Text(s.resetPasswordTitle, style: const TextStyle(color: Colors.white)),
       ),
       body: FadeTransition(
         opacity: fade,
@@ -91,9 +92,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Emailingizni yozing. Parolni tiklash havolasini Zaizen nomidan yuboramiz.',
-                  style: TextStyle(color: AppColors.textMuted),
+                Text(
+                  s.resetPasswordDesc,
+                  style: const TextStyle(color: AppColors.textMuted),
                 ),
                 const SizedBox(height: 20),
                 TextField(
@@ -132,7 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                   onPressed: _loading ? null : _send,
                   child: _loading
                       ? const CupertinoActivityIndicator(color: Colors.white)
-                      : const Text('Havola yuborish', style: TextStyle(color: Colors.white)),
+                      : Text(s.sendResetLink, style: const TextStyle(color: Colors.white)),
                 ),
               ],
             ),
