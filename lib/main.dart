@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zaizen/auth/auth_gate.dart';
 import 'package:zaizen/auth/auth_service.dart';
+import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
@@ -25,11 +27,24 @@ Future<void> main() async {
     ),
   );
   AuthService.instance.startSessionListener();
+  await SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: const [SystemUiOverlay.bottom],
+  );
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF05070C),
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileStore()),
       ],
       child: const MyApp(),
     ),
@@ -43,7 +58,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
     return MaterialApp(
-      key: ValueKey(localeProvider.locale.languageCode),
       title: 'Zaizen App',
       locale: localeProvider.locale,
       supportedLocales: [
