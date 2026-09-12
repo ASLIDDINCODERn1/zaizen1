@@ -46,6 +46,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
+    final net = context.watch<ConnectivityProvider>();
     return MaterialApp(
       title: 'Zaizen App',
       locale: localeProvider.locale,
@@ -69,35 +70,25 @@ class MyApp extends StatelessWidget {
       ),
       builder: (context, child) {
         StatusBarGuard.hide();
-        return child ?? const SizedBox.shrink();
+        if (!net.isReady) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF020617),
+            body: Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))),
+          );
+        }
+        if (!net.isOnline) {
+          return const NoInternetScreen();
+        }
+        return KeyedSubtree(
+          key: ValueKey('online-${net.reconnectEpoch}'),
+          child: child ?? const SizedBox.shrink(),
+        );
       },
-      home: const ConnectivityGate(
-        child: SplashScreen(
-          nextScreen: AuthGate(),
-        ),
+      home: const SplashScreen(
+        nextScreen: AuthGate(),
       ),
       debugShowCheckedModeBanner: false,
     );
-  }
-}
-
-class ConnectivityGate extends StatelessWidget {
-  final Widget child;
-  const ConnectivityGate({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final net = context.watch<ConnectivityProvider>();
-    if (!net.isReady) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF020617),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))),
-      );
-    }
-    if (!net.isOnline) {
-      return const NoInternetScreen();
-    }
-    return child;
   }
 }
 
