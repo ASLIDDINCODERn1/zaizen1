@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/locale_provider.dart';
+import 'package:zaizen/pages/notifications_inbox.dart';
 import 'package:zaizen/pages/profile.dart';
 
 import 'login.dart' show AppColors;
@@ -24,25 +27,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.bgTop, AppColors.bgBottom],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0.0, 0.6],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        extendBody: true,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.bgTop, AppColors.bgBottom],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: [0.0, 0.6],
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: IndexedStack(index: _tabIndex, children: _pages),
           ),
         ),
-        child: SafeArea(
-          bottom: false,
-          child: IndexedStack(index: _tabIndex, children: _pages),
+        bottomNavigationBar: _FloatingNavBar(
+          currentIndex: _tabIndex,
+          onTap: (i) => setState(() => _tabIndex = i),
         ),
-      ),
-      bottomNavigationBar: _FloatingNavBar(
-        currentIndex: _tabIndex,
-        onTap: (i) => setState(() => _tabIndex = i),
       ),
     );
   }
@@ -51,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
 class _FloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
-
   const _FloatingNavBar({required this.currentIndex, required this.onTap});
 
   @override
@@ -77,24 +86,9 @@ class _FloatingNavBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _NavButton(
-              icon: CupertinoIcons.house_fill,
-              label: s.navHome,
-              active: currentIndex == 0,
-              onTap: () => onTap(0),
-            ),
-            _NavButton(
-              icon: CupertinoIcons.chart_bar,
-              label: s.navRating,
-              active: currentIndex == 1,
-              onTap: () => onTap(1),
-            ),
-            _NavButton(
-              icon: CupertinoIcons.person_fill,
-              label: s.navProfile,
-              active: currentIndex == 2,
-              onTap: () => onTap(2),
-            ),
+            _NavButton(icon: CupertinoIcons.house_fill, label: s.navHome, active: currentIndex == 0, onTap: () => onTap(0)),
+            _NavButton(icon: CupertinoIcons.chart_bar, label: s.navRating, active: currentIndex == 1, onTap: () => onTap(1)),
+            _NavButton(icon: CupertinoIcons.person_fill, label: s.navProfile, active: currentIndex == 2, onTap: () => onTap(2)),
           ],
         ),
       ),
@@ -107,13 +101,7 @@ class _NavButton extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-
-  const _NavButton({
-    required this.icon,
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
+  const _NavButton({required this.icon, required this.label, required this.active, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -132,21 +120,9 @@ class _NavButton extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 22,
-                color: active ? Colors.white : AppColors.textMuted,
-              ),
+              Icon(icon, size: 22, color: active ? Colors.white : AppColors.textMuted),
               const SizedBox(height: 3),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: active ? Colors.white : AppColors.textMuted,
-                ),
-                child: Text(label),
-              ),
+              Text(label, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: active ? Colors.white : AppColors.textMuted)),
             ],
           ),
         ),
@@ -158,11 +134,7 @@ class _NavButton extends StatelessWidget {
 class _SmoothCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
-
-  const _SmoothCard({
-    required this.child,
-    this.padding = const EdgeInsets.all(16),
-  });
+  const _SmoothCard({required this.child, this.padding = const EdgeInsets.all(16)});
 
   @override
   Widget build(BuildContext context) {
@@ -184,8 +156,10 @@ class _HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
+    final profile = context.watch<ProfileStore>();
+    final avatar = profile.avatarUrl;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
+      padding: const EdgeInsets.fromLTRB(22, 28, 22, 110),
       physics: const BouncingScrollPhysics(),
       children: [
         Row(
@@ -198,14 +172,13 @@ class _HomeTab extends StatelessWidget {
                 border: Border.all(color: AppColors.primary, width: 1.6),
               ),
               child: ClipOval(
-                child: Image.asset(
-                  'assets/avatar.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    CupertinoIcons.person_fill,
-                    color: AppColors.primary,
-                  ),
-                ),
+                child: avatar != null && avatar.isNotEmpty
+                    ? Image.network(
+                        avatar,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(CupertinoIcons.person_fill, color: AppColors.primary),
+                      )
+                    : const Icon(CupertinoIcons.person_fill, color: AppColors.primary),
               ),
             ),
             const SizedBox(width: 14),
@@ -213,64 +186,36 @@ class _HomeTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(s.welcome, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
                   Text(
-                    s.welcome,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                  ),
-                  const Text(
-                    'Aziz Karimov',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    profile.name.isEmpty ? 'User' : profile.name,
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
             ),
-            _IconCircle(icon: CupertinoIcons.bell_fill, onTap: () {}),
+            _IconCircle(
+              icon: CupertinoIcons.bell_fill,
+              onTap: () {
+                Navigator.of(context).push(
+                  CupertinoPageRoute(builder: (_) => const NotificationsInboxScreen()),
+                );
+              },
+            ),
           ],
         ),
         const SizedBox(height: 22),
         Row(
           children: [
-            Expanded(
-              child: _StatCard(
-                icon: CupertinoIcons.star_fill,
-                value: '1,248',
-                label: s.score,
-                color: AppColors.primary,
-              ),
-            ),
+            Expanded(child: _StatCard(icon: CupertinoIcons.star_fill, value: '1,248', label: s.score, color: AppColors.primary)),
             const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                icon: CupertinoIcons.flame_fill,
-                value: '12',
-                label: s.streak,
-                color: const Color(0xFFEA580C),
-              ),
-            ),
+            Expanded(child: _StatCard(icon: CupertinoIcons.flame_fill, value: '12', label: s.streak, color: const Color(0xFFEA580C))),
             const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                icon: CupertinoIcons.rosette,
-                value: '#7',
-                label: s.rank,
-                color: const Color(0xFFEAB308),
-              ),
-            ),
+            Expanded(child: _StatCard(icon: CupertinoIcons.rosette, value: '#7', label: s.rank, color: const Color(0xFFEAB308))),
           ],
         ),
         const SizedBox(height: 26),
-        Text(
-          s.todayGoal,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text(s.todayGoal, style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         _SmoothCard(
           child: Column(
@@ -281,32 +226,17 @@ class _HomeTab extends StatelessWidget {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(CupertinoIcons.checkmark_seal_fill,
-                        color: AppColors.primary),
+                    decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(CupertinoIcons.checkmark_seal_fill, color: AppColors.primary),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          s.finishLessons,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                        ),
+                        Text(s.finishLessons, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 15)),
                         const SizedBox(height: 2),
-                        Text(
-                          s.lessonsProgress,
-                          style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 12.5),
-                        ),
+                        Text(s.lessonsProgress, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
                       ],
                     ),
                   ),
@@ -326,35 +256,13 @@ class _HomeTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 26),
-        Text(
-          s.recentActivity,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text(s.recentActivity, style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
-        _ActivityTile(
-          icon: CupertinoIcons.book_fill,
-          title: s.activityLesson,
-          subtitle: s.hoursAgo,
-          trailing: '+120',
-        ),
+        _ActivityTile(icon: CupertinoIcons.book_fill, title: s.activityLesson, subtitle: s.hoursAgo, trailing: '+120'),
         const SizedBox(height: 10),
-        _ActivityTile(
-          icon: CupertinoIcons.chat_bubble_2_fill,
-          title: s.activityGroup,
-          subtitle: s.yesterday,
-          trailing: '+40',
-        ),
+        _ActivityTile(icon: CupertinoIcons.chat_bubble_2_fill, title: s.activityGroup, subtitle: s.yesterday, trailing: '+40'),
         const SizedBox(height: 10),
-        _ActivityTile(
-          icon: CupertinoIcons.line_horizontal_3_decrease_circle,
-          title: s.activityWeekly,
-          subtitle: s.twoDaysAgo,
-          trailing: '+300',
-        ),
+        _ActivityTile(icon: CupertinoIcons.line_horizontal_3_decrease_circle, title: s.activityWeekly, subtitle: s.twoDaysAgo, trailing: '+300'),
       ],
     );
   }
@@ -390,13 +298,7 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
+  const _StatCard({required this.icon, required this.value, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -406,19 +308,9 @@ class _StatCard extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-            ),
-          ),
+          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5),
-          ),
+          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
         ],
       ),
     );
@@ -430,13 +322,7 @@ class _ActivityTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final String trailing;
-
-  const _ActivityTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-  });
+  const _ActivityTile({required this.icon, required this.title, required this.subtitle, required this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -447,10 +333,7 @@ class _ActivityTile extends StatelessWidget {
           Container(
             width: 42,
             height: 42,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(13),
-            ),
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(13)),
             child: Icon(icon, color: AppColors.primary, size: 19),
           ),
           const SizedBox(width: 12),
@@ -458,30 +341,13 @@ class _ActivityTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.5,
-                  ),
-                ),
+                Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14.5)),
                 const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                ),
+                Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
               ],
             ),
           ),
-          Text(
-            trailing,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-              fontSize: 13.5,
-            ),
-          ),
+          Text(trailing, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
         ],
       ),
     );
@@ -495,7 +361,7 @@ class _LeaderboardTab extends StatelessWidget {
     {'name': 'Malika Yusupova', 'score': 3120, 'rank': 1},
     {'name': 'Jasur Toshev', 'score': 2890, 'rank': 2},
     {'name': 'Dilnoza Rahimova', 'score': 2640, 'rank': 3},
-    {'name': 'Aziz Karimov', 'score': 1248, 'rank': 7, 'isMe': true},
+    {'name': 'You', 'score': 1248, 'rank': 7, 'isMe': true},
     {'name': 'Sardor Aliyev', 'score': 1120, 'rank': 8},
     {'name': 'Kamola Nabieva', 'score': 980, 'rank': 9},
   ];
@@ -516,23 +382,14 @@ class _LeaderboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
+    final me = context.watch<ProfileStore>().name;
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
       physics: const BouncingScrollPhysics(),
       children: [
-        Text(
-          s.leaderboardTitle,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text(s.leaderboardTitle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Text(
-          s.leaderboardSub,
-          style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
-        ),
+        Text(s.leaderboardSub, style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5)),
         const SizedBox(height: 18),
         for (final u in _users) ...[
           _SmoothCard(
@@ -541,47 +398,28 @@ class _LeaderboardTab extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 28,
-                  child: Text(
-                    '#${u['rank']}',
-                    style: TextStyle(
-                      color: _rankColor(u['rank'] as int),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
+                  child: Text('#${u['rank']}', style: TextStyle(color: _rankColor(u['rank'] as int), fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
                 const SizedBox(width: 8),
                 const CircleAvatar(
                   radius: 19,
                   backgroundColor: AppColors.border,
-                  child: Icon(CupertinoIcons.person_fill,
-                      color: AppColors.textMuted, size: 18),
+                  child: Icon(CupertinoIcons.person_fill, color: AppColors.textMuted, size: 18),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    u['name'] as String,
+                    (u['isMe'] == true && me.isNotEmpty) ? me : u['name'] as String,
                     style: TextStyle(
-                      color: (u['isMe'] == true)
-                          ? AppColors.primary
-                          : AppColors.textPrimary,
+                      color: (u['isMe'] == true) ? AppColors.primary : AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
                       fontSize: 14.5,
                     ),
                   ),
                 ),
-                if ((u['rank'] as int) <= 3)
-                  Icon(CupertinoIcons.rosette,
-                      color: _rankColor(u['rank'] as int), size: 18),
+                if ((u['rank'] as int) <= 3) Icon(CupertinoIcons.rosette, color: _rankColor(u['rank'] as int), size: 18),
                 const SizedBox(width: 6),
-                Text(
-                  '${u['score']}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
-                  ),
-                ),
+                Text('${u['score']}', style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13.5)),
               ],
             ),
           ),
