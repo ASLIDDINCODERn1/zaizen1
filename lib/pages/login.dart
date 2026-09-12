@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/password_rules.dart';
+import 'package:zaizen/l10n/l10n_scope.dart';
 import 'package:zaizen/pages/forgot_password.dart';
 
 class AppColors {
@@ -117,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen>
         return;
       }
     } else if (pass.isEmpty) {
-      _toast('Parol kiriting', error: true);
+      _toast(L.read(context).authEnterPassword, error: true);
       return;
     }
 
@@ -131,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen>
         );
         if (!mounted) return;
         if (res.session == null) {
-          _toast("Hisob yaratildi. Emailni tasdiqlang, so'ng kiring.");
+          _toast(L.read(context).authAccountCreated);
           setState(() => _isSignUp = false);
         }
       } else {
@@ -167,6 +168,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final s = L.of(context);
     return Scaffold(
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
@@ -201,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen>
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(22, 12, 22, 24 + bottom),
+                  padding: EdgeInsets.fromLTRB(22, 8, 22, 24 + bottom),
                   physics: const BouncingScrollPhysics(),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
@@ -252,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     opacity: anim,
                                     child: SlideTransition(
                                       position: Tween<Offset>(
-                                        begin: const Offset(0, 0.12),
+                                        begin: const Offset(0.12, 0),
                                         end: Offset.zero,
                                       ).animate(anim),
                                       child: child,
@@ -260,8 +262,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   );
                                 },
                                 child: Text(
-                                  _isSignUp ? "Yangi hisob oching" : 'Hisobingizga kiring',
-                                  key: ValueKey(_isSignUp),
+                                  _isSignUp ? s.createAccount : s.signInHint,
+                                  key: ValueKey('${_isSignUp}_${s.languageCode}'),
                                   style: const TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 14.5,
@@ -303,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         children: [
                                           if (_isSignUp) ...[
                                             _Field(
-                                              label: 'Ism',
+                                              label: s.nameLabel,
                                               hint: 'Asliddin',
                                               controller: _nameCtrl,
                                               icon: CupertinoIcons.person,
@@ -311,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen>
                                             const SizedBox(height: 14),
                                           ],
                                           _Field(
-                                            label: 'Email',
+                                            label: s.email,
                                             hint: 'you@email.com',
                                             controller: _emailCtrl,
                                             keyboardType: TextInputType.emailAddress,
@@ -319,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen>
                                           ),
                                           const SizedBox(height: 14),
                                           _Field(
-                                            label: 'Parol',
+                                            label: s.password,
                                             hint: '••••••••',
                                             controller: _passCtrl,
                                             obscure: _obscure,
@@ -334,7 +336,7 @@ class _LoginScreenState extends State<LoginScreen>
                                             _PasswordStrengthBar(password: _passCtrl.text),
                                             const SizedBox(height: 14),
                                             _Field(
-                                              label: 'Parolni tasdiqlang',
+                                              label: s.confirmPassword,
                                               hint: '••••••••',
                                               controller: _confirmCtrl,
                                               obscure: _obscure2,
@@ -377,9 +379,9 @@ class _LoginScreenState extends State<LoginScreen>
                                                     ),
                                                   );
                                                 },
-                                                child: const Text(
-                                                  'Parolni unutdingizmi?',
-                                                  style: TextStyle(
+                                                child: Text(
+                                                  s.forgotPassword,
+                                                  style: const TextStyle(
                                                     color: AppColors.primary,
                                                     fontSize: 13.5,
                                                     fontWeight: FontWeight.w600,
@@ -393,25 +395,25 @@ class _LoginScreenState extends State<LoginScreen>
                                     ),
                                     const SizedBox(height: 18),
                                     _PrimaryButton(
-                                      label: _isSignUp ? "Ro'yxatdan o'tish" : 'Kirish',
+                                      label: _isSignUp ? s.signUp : s.signIn,
                                       loading: _loading,
                                       onTap: _loading ? () {} : _handleSubmit,
                                     ),
                                     const SizedBox(height: 16),
-                                    const Row(
+                                    Row(
                                       children: [
-                                        Expanded(child: Divider(color: AppColors.border)),
+                                        const Expanded(child: Divider(color: AppColors.border)),
                                         Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 10),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10),
                                           child: Text(
-                                            'yoki',
-                                            style: TextStyle(
+                                            s.orWord,
+                                            style: const TextStyle(
                                               color: AppColors.textMuted,
                                               fontSize: 12.5,
                                             ),
                                           ),
                                         ),
-                                        Expanded(child: Divider(color: AppColors.border)),
+                                        const Expanded(child: Divider(color: AppColors.border)),
                                       ],
                                     ),
                                     const SizedBox(height: 16),
@@ -427,9 +429,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          _isSignUp
-                              ? "Ma'lumotlaringiz xavfsiz saqlanadi"
-                              : 'Davom etish uchun hisobingizga kiring',
+                          _isSignUp ? s.dataSafe : s.continueNeedLogin,
                           style: const TextStyle(
                             color: AppColors.textMuted,
                             fontSize: 12.5,
@@ -455,6 +455,7 @@ class _ModeSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = L.of(context);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -464,8 +465,8 @@ class _ModeSwitch extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _chip('Kirish', !isSignUp, () => onChanged(false)),
-          _chip("Ro'yxat", isSignUp, () => onChanged(true)),
+          _chip(s.signIn, !isSignUp, () => onChanged(false)),
+          _chip(s.signUp, isSignUp, () => onChanged(true)),
         ],
       ),
     );
@@ -604,7 +605,9 @@ class _PasswordStrengthBar extends StatelessWidget {
           duration: const Duration(milliseconds: 220),
           style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
           child: Text(
-            password.isEmpty ? '8+ belgi, harf va raqam' : PasswordRules.strengthLabel(score),
+            password.isEmpty
+                ? L.of(context).passwordHintShort
+                : PasswordRules.strengthLabel(score),
           ),
         ),
       ],
@@ -704,14 +707,14 @@ class _GoogleButton extends StatelessWidget {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
               )
-            : const Row(
+            : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.g_mobiledata_rounded, color: AppColors.google, size: 28),
-                  SizedBox(width: 6),
+                  const Icon(Icons.g_mobiledata_rounded, color: AppColors.google, size: 28),
+                  const SizedBox(width: 6),
                   Text(
-                    'Google orqali davom etish',
-                    style: TextStyle(
+                    L.of(context).googleContinue,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 14.5,
