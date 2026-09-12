@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zaizen/auth/auth_service.dart';
+import 'package:zaizen/auth/password_rules.dart';
 import 'package:zaizen/pages/login.dart';
 
 class UpdatePasswordScreen extends StatefulWidget {
@@ -15,6 +16,15 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
   final _confirm = TextEditingController();
   bool _loading = false;
   String? _message;
+  bool _ok = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pass.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -24,12 +34,23 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
   }
 
   Future<void> _save() async {
-    if (_pass.text.length < 6) {
-      setState(() => _message = "Parol kamida 6 ta belgidan iborat bo'lsin.");
+    final passErr = PasswordRules.passwordError(
+      _pass.text,
+      email: AuthService.instance.email,
+    );
+    if (passErr != null) {
+      setState(() {
+        _ok = false;
+        _message = passErr;
+      });
       return;
     }
-    if (_pass.text != _confirm.text) {
-      setState(() => _message = 'Parollar mos emas.');
+    final confirmErr = PasswordRules.confirmError(_pass.text, _confirm.text);
+    if (confirmErr != null) {
+      setState(() {
+        _ok = false;
+        _message = confirmErr;
+      });
       return;
     }
     setState(() {
@@ -39,9 +60,15 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
     try {
       await AuthService.instance.updatePassword(_pass.text);
       if (!mounted) return;
-      setState(() => _message = 'Parol yangilandi.');
+      setState(() {
+        _ok = true;
+        _message = 'Parol yangilandi. Endi shu parol bilan kiring.';
+      });
     } catch (e) {
-      setState(() => _message = e.toString());
+      setState(() {
+        _ok = false;
+        _message = e.toString();
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -49,6 +76,7 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final score = PasswordRules.strength(_pass.text);
     return Scaffold(
       backgroundColor: AppColors.bgBottom,
       appBar: AppBar(
@@ -60,16 +88,36 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           const Text(
-            'Email havolasidan keyin yangi parol o\u2018rnating.',
+            'Kamida 8 belgi, 1 harf va 1 raqam. Oddiy parollar qabul qilinmaydi.',
             style: TextStyle(color: AppColors.textMuted),
           ),
           const SizedBox(height: 20),
           _field('Yangi parol', _pass),
+          const SizedBox(height: 10),
+          Text(
+            _pass.text.isEmpty
+                ? '8+ belgi, harf va raqam'
+                : PasswordRules.strengthLabel(score),
+            style: TextStyle(
+              color: score >= 3
+                  ? const Color(0xFF22C55E)
+                  : score == 2
+                      ? const Color(0xFFEAB308)
+                      : AppColors.error,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 14),
           _field('Parolni tasdiqlang', _confirm),
           if (_message != null) ...[
             const SizedBox(height: 12),
-            Text(_message!, style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              _message!,
+              style: TextStyle(
+                color: _ok ? const Color(0xFF22C55E) : AppColors.error,
+              ),
+            ),
           ],
           const SizedBox(height: 24),
           CupertinoButton(
@@ -95,12 +143,17 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
           controller: c,
           obscureText: true,
           style: const TextStyle(color: Colors.white),
+          cursorColor: AppColors.primary,
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.surface,
-            border: OutlineInputBorder(
+            enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
           ),
         ),
