@@ -1,11 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/profile.dart';
 
-// Mavjud ranglar palitrasi
 import 'login.dart' show AppColors;
-
-// Alohida ajratilgan toza Profil moduli
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = const [
     _HomeTab(),
     _LeaderboardTab(),
-    ProfileTab(), // <-- Endi alohida toza fayldan yuklanadi
+    ProfileTab(),
   ];
 
   @override
@@ -49,7 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// ─── Floating smooth-edged nav bar ─────────────────────────────────
 class _FloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -58,6 +56,7 @@ class _FloatingNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<LocaleProvider>().strings;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 22),
       child: Container(
@@ -80,19 +79,19 @@ class _FloatingNavBar extends StatelessWidget {
           children: [
             _NavButton(
               icon: CupertinoIcons.house_fill,
-              label: 'Bosh sahifa',
+              label: s.navHome,
               active: currentIndex == 0,
               onTap: () => onTap(0),
             ),
             _NavButton(
               icon: CupertinoIcons.chart_bar,
-              label: 'Reyting',
+              label: s.navRating,
               active: currentIndex == 1,
               onTap: () => onTap(1),
             ),
             _NavButton(
               icon: CupertinoIcons.person_fill,
-              label: 'Profil',
+              label: s.navProfile,
               active: currentIndex == 2,
               onTap: () => onTap(2),
             ),
@@ -156,7 +155,6 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-/// ─── Reusable smooth rounded card ──────────────────────────────────
 class _SmoothCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -180,12 +178,12 @@ class _SmoothCard extends StatelessWidget {
   }
 }
 
-/// ─── HOME TAB ───────────────────────────────────────────────────────
 class _HomeTab extends StatelessWidget {
   const _HomeTab();
 
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<LocaleProvider>().strings;
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
       physics: const BouncingScrollPhysics(),
@@ -211,15 +209,15 @@ class _HomeTab extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Xush kelibsiz,',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    s.welcome,
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
                   ),
-                  Text(
+                  const Text(
                     'Aziz Karimov',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -234,51 +232,46 @@ class _HomeTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 22),
-
-        /// Quick stats row
-        const Row(
+        Row(
           children: [
             Expanded(
               child: _StatCard(
                 icon: CupertinoIcons.star_fill,
                 value: '1,248',
-                label: 'Ball',
+                label: s.score,
                 color: AppColors.primary,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
                 icon: CupertinoIcons.flame_fill,
                 value: '12',
-                label: 'Streak',
-                color: Color(0xFFEA580C),
+                label: s.streak,
+                color: const Color(0xFFEA580C),
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
                 icon: CupertinoIcons.rosette,
                 value: '#7',
-                label: "O'rin",
-                color: Color(0xFFEAB308),
+                label: s.rank,
+                color: const Color(0xFFEAB308),
               ),
             ),
           ],
         ),
-
         const SizedBox(height: 26),
-
-        const Text(
-          "Bugungi maqsad",
-          style: TextStyle(
+        Text(
+          s.todayGoal,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 12),
-
         _SmoothCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,22 +289,22 @@ class _HomeTab extends StatelessWidget {
                         color: AppColors.primary),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '3 ta darsni tugating',
-                          style: TextStyle(
+                          s.finishLessons,
+                          style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          '2 / 3 tugallandi',
-                          style: TextStyle(
+                          s.lessonsProgress,
+                          style: const TextStyle(
                               color: AppColors.textMuted, fontSize: 12.5),
                         ),
                       ],
@@ -332,37 +325,34 @@ class _HomeTab extends StatelessWidget {
             ],
           ),
         ),
-
         const SizedBox(height: 26),
-
-        const Text(
-          "So'nggi faoliyat",
-          style: TextStyle(
+        Text(
+          s.recentActivity,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 12),
-
-        const _ActivityTile(
+        _ActivityTile(
           icon: CupertinoIcons.book_fill,
-          title: "Flutter asoslari",
-          subtitle: '2 soat oldin',
+          title: s.activityLesson,
+          subtitle: s.hoursAgo,
           trailing: '+120',
         ),
         const SizedBox(height: 10),
-        const _ActivityTile(
+        _ActivityTile(
           icon: CupertinoIcons.chat_bubble_2_fill,
-          title: 'Guruh muhokamasi',
-          subtitle: 'Kecha',
+          title: s.activityGroup,
+          subtitle: s.yesterday,
           trailing: '+40',
         ),
         const SizedBox(height: 10),
-        const _ActivityTile(
+        _ActivityTile(
           icon: CupertinoIcons.line_horizontal_3_decrease_circle,
-          title: 'Haftalik yutuq',
-          subtitle: '2 kun oldin',
+          title: s.activityWeekly,
+          subtitle: s.twoDaysAgo,
           trailing: '+300',
         ),
       ],
@@ -389,7 +379,7 @@ class _IconCircle extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.border),
         ),
-        child:  Icon(icon, color: AppColors.primary, size: 19),
+        child: Icon(icon, color: AppColors.primary, size: 19),
       ),
     );
   }
@@ -498,7 +488,6 @@ class _ActivityTile extends StatelessWidget {
   }
 }
 
-/// ─── LEADERBOARD TAB ───────────────────────────────────────────────
 class _LeaderboardTab extends StatelessWidget {
   const _LeaderboardTab();
 
@@ -526,25 +515,25 @@ class _LeaderboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<LocaleProvider>().strings;
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
       physics: const BouncingScrollPhysics(),
       children: [
-        const Text(
-          'Reyting jadvali',
-          style: TextStyle(
+        Text(
+          s.leaderboardTitle,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 22,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
-          'Ushbu hafta eng faol foydalanuvchilar',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+        Text(
+          s.leaderboardSub,
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
         ),
         const SizedBox(height: 18),
-
         for (final u in _users) ...[
           _SmoothCard(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
