@@ -36,15 +36,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
     final provider = Provider.of<LocaleProvider>(context, listen: false);
     await provider.setLocale(code);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(provider.strings.languageSaved),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    Navigator.pop(context);
   }
 
   @override
@@ -163,8 +155,8 @@ class _FlagLangTile extends StatelessWidget {
               height: 46,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.15)
-                    : AppColors.border.withValues(alpha: 0.3),
+                    ? AppColors.primary.withOpacity(0.15)
+                    : AppColors.border.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(child: Text(flag, style: const TextStyle(fontSize: 26))),
