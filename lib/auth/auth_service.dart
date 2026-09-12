@@ -7,9 +7,11 @@ class AuthService {
   static final AuthService instance = AuthService._();
 
   static const redirectUrl = 'io.zaizen.app://login-callback/';
+  static const mediaBucket = 'zaizen';
 
   bool _listening = false;
 
+  SupabaseClient get client => _client;
   SupabaseClient get _client => Supabase.instance.client;
 
   User? get currentUser => _client.auth.currentUser;
@@ -156,12 +158,15 @@ class AuthService {
     if (user == null) throw AuthFailure('Avval tizimga kiring');
     final ext = fileExt.toLowerCase().replaceAll('.', '');
     final path = '${user.id}/avatar.$ext';
-    await _client.storage.from('avatars').uploadBinary(
+    await _client.storage.from(mediaBucket).uploadBinary(
           path,
           bytes,
-          fileOptions:  FileOptions(upsert: true, contentType: 'image/$ext'),
+          fileOptions: FileOptions(
+            upsert: true,
+            contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
+          ),
         );
-    final url = _client.storage.from('avatars').getPublicUrl(path);
+    final url = _client.storage.from(mediaBucket).getPublicUrl(path);
     final withTs = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
     await updateProfile(avatarUrl: withTs);
     return withTs;
@@ -174,7 +179,7 @@ class AuthService {
       await _client.from('profiles').delete().eq('id', user.id);
     } catch (_) {}
     try {
-      await _client.storage.from('avatars').remove([
+      await _client.storage.from(mediaBucket).remove([
         '${user.id}/avatar.png',
         '${user.id}/avatar.jpg',
         '${user.id}/avatar.jpeg',
