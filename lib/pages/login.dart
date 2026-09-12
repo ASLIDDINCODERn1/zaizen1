@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,7 +32,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late bool _isSignUp;
   bool _obscure = true;
   bool _obscure2 = true;
@@ -46,30 +44,27 @@ class _LoginScreenState extends State<LoginScreen>
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
 
-  late final AnimationController _entranceController;
-  late final AnimationController _glowController;
+  late final AnimationController _enter;
 
   @override
   void initState() {
     super.initState();
     _isSignUp = widget.startOnSignUp;
-    _entranceController = AnimationController(
+    _enter = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 420),
     )..forward();
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 5200),
-    )..repeat();
-    _passCtrl.addListener(() {
-      if (mounted) setState(() {});
-    });
+    _passCtrl.addListener(_onPassChanged);
+  }
+
+  void _onPassChanged() {
+    if (_isSignUp && mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _entranceController.dispose();
-    _glowController.dispose();
+    _enter.dispose();
+    _passCtrl.removeListener(_onPassChanged);
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
@@ -94,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       await AuthService.instance.signInWithGoogle();
     } catch (e) {
-      _toast(e.toString(), error: true);
+      if (mounted) _toast(e.toString(), error: true);
     } finally {
       if (mounted) setState(() => _googleLoading = false);
     }
@@ -153,68 +148,25 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  Widget _staggered(Widget child, {required double start, double end = 1.0}) {
-    final curved = CurvedAnimation(
-      parent: _entranceController,
-      curve: Interval(start, end, curve: Curves.easeOutCubic),
-    );
-    return AnimatedBuilder(
-      animation: curved,
-      child: child,
-      builder: (context, child) {
-        return Opacity(
-          opacity: curved.value.clamp(0.0, 1.0),
-          child: Transform.translate(
-            offset: Offset(0, (1 - curved.value) * 22),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     final s = L.of(context);
     return Scaffold(
+      backgroundColor: AppColors.bgBottom,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
-        child: Stack(
-          children: [
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.bgTop, AppColors.bgBottom],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: SizedBox.expand(),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.bgTop, AppColors.bgBottom],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            AnimatedBuilder(
-              animation: _glowController,
-              builder: (_, __) {
-                final t = _glowController.value * math.pi * 2;
-                return Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment(math.sin(t) * 0.35, -0.82 + math.cos(t) * 0.06),
-                      child: _GlowOrb(size: 320, color: AppColors.primary.withOpacity(0.28)),
-                    ),
-                    Align(
-                      alignment: Alignment(-0.9 + math.cos(t) * 0.12, 0.55),
-                      child: _GlowOrb(size: 220, color: const Color(0xFF22D3EE).withOpacity(0.16)),
-                    ),
-                    Align(
-                      alignment: Alignment(0.95, 0.85 + math.sin(t * 0.7) * 0.08),
-                      child: _GlowOrb(size: 180, color: const Color(0xFF8B5CF6).withOpacity(0.14)),
-                    ),
-                  ],
-                );
-              },
-            ),
-            SafeArea(
+          ),
+          child: SafeArea(
+            child: FadeTransition(
+              opacity: _enter,
               child: Center(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(22, 8, 22, 24 + bottom),
@@ -223,225 +175,160 @@ class _LoginScreenState extends State<LoginScreen>
                     constraints: const BoxConstraints(maxWidth: 420),
                     child: Column(
                       children: [
-                        _staggered(
-                          start: 0,
-                          end: 0.45,
-                          Column(
+                        Container(
+                          width: 72,
+                          height: 72,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0x14FFFFFF),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0x14FFFFFF)),
+                          ),
+                          child: Image.asset(
+                            'assets/logo.png',
+                            filterQuality: FilterQuality.medium,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.bolt_rounded,
+                              color: AppColors.primary,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'ZAIZEN',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _isSignUp ? s.createAccount : s.signInHint,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14.5,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xF20E1420),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
                             children: [
-                              Container(
-                                width: 78,
-                                height: 78,
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.06),
-                                  borderRadius: BorderRadius.circular(22),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.08),
-                                  ),
-                                ),
-                                child: Image.asset(
-                                  'assets/logo.png',
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.bolt_rounded,
-                                    color: AppColors.primary,
-                                    size: 36,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'ZAIZEN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 3,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 280),
-                                switchInCurve: Curves.easeOutCubic,
-                                switchOutCurve: Curves.easeInCubic,
-                                transitionBuilder: (child, anim) {
-                                  return FadeTransition(
-                                    opacity: anim,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0.12, 0),
-                                        end: Offset.zero,
-                                      ).animate(anim),
-                                      child: child,
-                                    ),
-                                  );
+                              _ModeSwitch(
+                                isSignUp: _isSignUp,
+                                onChanged: (v) {
+                                  if (v == _isSignUp) return;
+                                  setState(() => _isSignUp = v);
                                 },
-                                child: Text(
-                                  _isSignUp ? s.createAccount : s.signInHint,
-                                  key: ValueKey('${_isSignUp}_${s.languageCode}'),
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 14.5,
+                              ),
+                              const SizedBox(height: 18),
+                              if (_isSignUp) ...[
+                                _Field(
+                                  label: s.nameLabel,
+                                  hint: 'Asliddin',
+                                  controller: _nameCtrl,
+                                  icon: CupertinoIcons.person,
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                              _Field(
+                                label: s.email,
+                                hint: 'you@email.com',
+                                controller: _emailCtrl,
+                                keyboardType: TextInputType.emailAddress,
+                                icon: CupertinoIcons.mail,
+                              ),
+                              const SizedBox(height: 12),
+                              _Field(
+                                label: s.password,
+                                hint: '••••••••',
+                                controller: _passCtrl,
+                                obscure: _obscure,
+                                icon: CupertinoIcons.lock,
+                                suffix: _Eye(
+                                  obscure: _obscure,
+                                  onTap: () => setState(() => _obscure = !_obscure),
+                                ),
+                              ),
+                              if (_isSignUp) ...[
+                                const SizedBox(height: 10),
+                                _PasswordStrengthBar(password: _passCtrl.text),
+                                const SizedBox(height: 12),
+                                _Field(
+                                  label: s.confirmPassword,
+                                  hint: '••••••••',
+                                  controller: _confirmCtrl,
+                                  obscure: _obscure2,
+                                  icon: CupertinoIcons.lock_shield,
+                                  suffix: _Eye(
+                                    obscure: _obscure2,
+                                    onTap: () => setState(() => _obscure2 = !_obscure2),
                                   ),
                                 ),
+                              ],
+                              if (!_isSignUp)
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: CupertinoButton(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    minSize: 0,
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const ForgotPasswordScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      s.forgotPassword,
+                                      style: const TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 16),
+                              _PrimaryButton(
+                                label: _isSignUp ? s.signUp : s.signIn,
+                                loading: _loading,
+                                onTap: _loading ? () {} : _handleSubmit,
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  const Expanded(child: Divider(color: AppColors.border)),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    child: Text(
+                                      s.orWord,
+                                      style: const TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 12.5,
+                                      ),
+                                    ),
+                                  ),
+                                  const Expanded(child: Divider(color: AppColors.border)),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              _GoogleButton(
+                                loading: _googleLoading,
+                                onTap: _googleLoading ? () {} : _handleGoogle,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 22),
-                        _staggered(
-                          start: 0.12,
-                          end: 0.7,
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                              child: Container(
-                                padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xCC0E1420),
-                                  borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(color: AppColors.border),
-                                ),
-                                child: Column(
-                                  children: [
-                                    _ModeSwitch(
-                                      isSignUp: _isSignUp,
-                                      onChanged: (v) {
-                                        if (v == _isSignUp) return;
-                                        setState(() => _isSignUp = v);
-                                      },
-                                    ),
-                                    const SizedBox(height: 20),
-                                    AnimatedSize(
-                                      duration: const Duration(milliseconds: 360),
-                                      curve: Curves.easeOutCubic,
-                                      child: Column(
-                                        children: [
-                                          if (_isSignUp) ...[
-                                            _Field(
-                                              label: s.nameLabel,
-                                              hint: 'Asliddin',
-                                              controller: _nameCtrl,
-                                              icon: CupertinoIcons.person,
-                                            ),
-                                            const SizedBox(height: 14),
-                                          ],
-                                          _Field(
-                                            label: s.email,
-                                            hint: 'you@email.com',
-                                            controller: _emailCtrl,
-                                            keyboardType: TextInputType.emailAddress,
-                                            icon: CupertinoIcons.mail,
-                                          ),
-                                          const SizedBox(height: 14),
-                                          _Field(
-                                            label: s.password,
-                                            hint: '••••••••',
-                                            controller: _passCtrl,
-                                            obscure: _obscure,
-                                            icon: CupertinoIcons.lock,
-                                            suffix: _Eye(
-                                              obscure: _obscure,
-                                              onTap: () => setState(() => _obscure = !_obscure),
-                                            ),
-                                          ),
-                                          if (_isSignUp) ...[
-                                            const SizedBox(height: 10),
-                                            _PasswordStrengthBar(password: _passCtrl.text),
-                                            const SizedBox(height: 14),
-                                            _Field(
-                                              label: s.confirmPassword,
-                                              hint: '••••••••',
-                                              controller: _confirmCtrl,
-                                              obscure: _obscure2,
-                                              icon: CupertinoIcons.lock_shield,
-                                              suffix: _Eye(
-                                                obscure: _obscure2,
-                                                onTap: () => setState(() => _obscure2 = !_obscure2),
-                                              ),
-                                            ),
-                                          ],
-                                          if (!_isSignUp) ...[
-                                            const SizedBox(height: 8),
-                                            Align(
-                                              alignment: Alignment.centerRight,
-                                              child: CupertinoButton(
-                                                padding: EdgeInsets.zero,
-                                                minSize: 0,
-                                                onPressed: () {
-                                                  Navigator.of(context).push(
-                                                    PageRouteBuilder(
-                                                      transitionDuration: const Duration(milliseconds: 380),
-                                                      reverseTransitionDuration: const Duration(milliseconds: 280),
-                                                      pageBuilder: (_, anim, __) => const ForgotPasswordScreen(),
-                                                      transitionsBuilder: (_, anim, __, child) {
-                                                        final curved = CurvedAnimation(
-                                                          parent: anim,
-                                                          curve: Curves.easeOutCubic,
-                                                        );
-                                                        return FadeTransition(
-                                                          opacity: curved,
-                                                          child: SlideTransition(
-                                                            position: Tween<Offset>(
-                                                              begin: const Offset(0.06, 0),
-                                                              end: Offset.zero,
-                                                            ).animate(curved),
-                                                            child: child,
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  );
-                                                },
-                                                child: Text(
-                                                  s.forgotPassword,
-                                                  style: const TextStyle(
-                                                    color: AppColors.primary,
-                                                    fontSize: 13.5,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 18),
-                                    _PrimaryButton(
-                                      label: _isSignUp ? s.signUp : s.signIn,
-                                      loading: _loading,
-                                      onTap: _loading ? () {} : _handleSubmit,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      children: [
-                                        const Expanded(child: Divider(color: AppColors.border)),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                                          child: Text(
-                                            s.orWord,
-                                            style: const TextStyle(
-                                              color: AppColors.textMuted,
-                                              fontSize: 12.5,
-                                            ),
-                                          ),
-                                        ),
-                                        const Expanded(child: Divider(color: AppColors.border)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _GoogleButton(
-                                      loading: _googleLoading,
-                                      onTap: _googleLoading ? () {} : _handleGoogle,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                         Text(
                           _isSignUp ? s.dataSafe : s.continueNeedLogin,
                           style: const TextStyle(
@@ -455,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -491,17 +378,13 @@ class _ModeSwitch extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            gradient: active
-                ? const LinearGradient(
-                    colors: [AppColors.primaryDark, AppColors.primary],
-                  )
-                : null,
+            color: active ? AppColors.primary : Colors.transparent,
           ),
           child: Text(
             label,
@@ -601,9 +484,7 @@ class _PasswordStrengthBar extends StatelessWidget {
           children: List.generate(4, (i) {
             final on = score > i;
             return Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
+              child: Container(
                 height: 4,
                 margin: EdgeInsets.only(right: i == 3 ? 0 : 5),
                 decoration: BoxDecoration(
@@ -615,14 +496,11 @@ class _PasswordStrengthBar extends StatelessWidget {
           }),
         ),
         const SizedBox(height: 6),
-        AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 220),
+        Text(
+          password.isEmpty
+              ? L.of(context).passwordHintShort
+              : PasswordRules.strengthLabel(score),
           style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
-          child: Text(
-            password.isEmpty
-                ? L.of(context).passwordHintShort
-                : PasswordRules.strengthLabel(score),
-          ),
         ),
       ],
     );
@@ -666,16 +544,7 @@ class _PrimaryButton extends StatelessWidget {
         height: 52,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [AppColors.primaryDark, AppColors.primary],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          color: AppColors.primary,
         ),
         alignment: Alignment.center,
         child: loading
@@ -697,100 +566,54 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-class _GlowOrb extends StatelessWidget {
-  final double size;
-  final Color color;
-  const _GlowOrb({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withOpacity(0)]),
-        ),
-      ),
-    );
-  }
-}
-
-class _GoogleButton extends StatefulWidget {
+class _GoogleButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool loading;
   const _GoogleButton({required this.onTap, this.loading = false});
 
   @override
-  State<_GoogleButton> createState() => _GoogleButtonState();
-}
-
-class _GoogleButtonState extends State<_GoogleButton> {
-  bool _down = false;
-
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: widget.loading ? null : (_) => setState(() => _down = true),
-      onTapUp: widget.loading ? null : (_) => setState(() => _down = false),
-      onTapCancel: () => setState(() => _down = false),
-      onTap: widget.loading ? null : widget.onTap,
-      child: AnimatedScale(
-        scale: _down ? 0.97 : 1,
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutCubic,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          width: double.infinity,
-          height: 52,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: const Color(0xFF171C28),
-            border: Border.all(
-              color: _down ? Colors.white24 : const Color(0xFF2A3142),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.28),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          alignment: Alignment.center,
-          child: widget.loading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SvgPicture.asset(
-                      'assets/google.svg',
-                      width: 22,
-                      height: 22,
-                      placeholderBuilder: (_) => const Icon(
-                        Icons.g_mobiledata_rounded,
-                        color: Color(0xFFEA4335),
-                        size: 26,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      L.of(context).googleContinue,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
-                ),
+      onTap: loading ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFF171C28),
+          border: Border.all(color: const Color(0xFF2A3142)),
         ),
+        alignment: Alignment.center,
+        child: loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    'assets/google.svg',
+                    width: 22,
+                    height: 22,
+                    placeholderBuilder: (_) => const Icon(
+                      Icons.g_mobiledata_rounded,
+                      color: Color(0xFFEA4335),
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    L.of(context).googleContinue,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
