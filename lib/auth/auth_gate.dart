@@ -6,8 +6,6 @@ import 'package:zaizen/pages/login.dart';
 import 'package:zaizen/pages/update_password.dart';
 import 'package:zaizen/ui/language_picker_bar.dart';
 
-/// Yangi foydalanuvchi login qilmaguncha ichkariga kira olmaydi.
-/// Session saqlanadi — ilovani qayta ochganda avtomatik kiradi.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
