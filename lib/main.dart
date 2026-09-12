@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zaizen/auth/auth_gate.dart';
 import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
-import 'package:zaizen/pages/homepage.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
 import 'package:zaizen/pages/onboarding.dart';
 import 'package:zaizen/pages/profile_menus/app_lock.dart';
 
-void main() {
+const _supabaseUrl = 'https://vazzsnxyqbumqstjgsln.supabase.co';
+const _supabaseAnonKey = 'sb_publishable_0gYD9sXBEp5N16haSniQew_6bsbiV3X';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: _supabaseUrl,
+    anonKey: _supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+    ),
+  );
   runApp(
     MultiProvider(
       providers: [
@@ -39,19 +50,12 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      localeResolutionCallback: (locale, supported) {
-        if (locale == null) return const Locale('uz');
-        for (final s in supported) {
-          if (s.languageCode == locale.languageCode) return s;
-        }
-        return const Locale('uz');
-      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const ConnectivityGate(
         child: SplashScreen(
-          nextScreen: HomeScreen(),
+          nextScreen: AuthGate(),
         ),
       ),
       debugShowCheckedModeBanner: false,
@@ -108,7 +112,6 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
   Future<void> _checkInitialLock() async {
     final pin = await SecurityHelper.getSavedPin();
     if (!mounted) return;
-
     setState(() {
       _isLocked = pin != null && pin.isNotEmpty;
       _isInitialized = true;
@@ -118,7 +121,6 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (SecurityHelper.isAuthenticating) return;
-
     if (state == AppLifecycleState.paused) {
       _pausedTime = DateTime.now();
     } else if (state == AppLifecycleState.resumed) {
@@ -140,7 +142,6 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
         body: Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))),
       );
     }
-
     if (_isLocked) {
       return AppLockScreen(
         onAuthenticated: () {
@@ -148,7 +149,6 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
         },
       );
     }
-
     return widget.child;
   }
 }
