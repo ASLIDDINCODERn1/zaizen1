@@ -170,16 +170,47 @@ class AuthService {
   Future<String> uploadAvatar(Uint8List bytes, String fileExt) async {
     final user = currentUser;
     if (user == null) throw AuthFailure('Avval tizimga kiring');
-    final ext = fileExt.toLowerCase().replaceAll('.', '');
+    if (bytes.isEmpty) throw AuthFailure("Rasm bo'sh. Boshqa rasm tanlang.");
+    if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+      throw AuthFailure("Rasm 5 MB dan oshmasin.");
+    }
+    var ext = fileExt.toLowerCase().replaceAll('.', '').trim();
+    if (ext == 'jpeg' || ext == 'heic' || ext == 'heif' || ext.isEmpty) ext = 'jpg';
+    if (ext != 'png' && ext != 'jpg' && ext != 'webp' && ext != 'gif') {
+      ext = 'jpg';
+    }
+    final mime = {
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'webp': 'image/webp',
+      'gif': 'image/gif',
+    }[ext]!;
     final path = '${user.id}/avatar.$ext';
-    await _client.storage.from(mediaBucket).uploadBinary(
-          path,
-          bytes,
-          fileOptions: FileOptions(
-            upsert: true,
-            contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
-          ),
+    try {
+      await _client.storage.from(mediaBucket).uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(
+              upsert: true,
+              contentType: mime,
+              cacheControl: '3600',
+            ),
+          );
+    } catch (e) {
+      final raw = e.toString().toLowerCase();
+      if (raw.contains('row-level security') ||
+          raw.contains('unauthorized') ||
+          raw.contains('not allowed') ||
+          raw.contains('security') ||
+          raw.contains('rls') ||
+          raw.contains('403') ||
+          raw.contains('401')) {
+        throw AuthFailure(
+          "Rasm yuklanmadi (storage ruxsati). supabase/setup.sql ni SQL Editorda ishga tushiring.",
         );
+      }
+      throw AuthFailure(mapAuthError(e));
+    }
     final url = _client.storage.from(mediaBucket).getPublicUrl(path);
     final withTs = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
     await updateProfile(avatarUrl: withTs);
@@ -189,26 +220,30 @@ class AuthService {
   Future<void> deleteAccount() async {
     final user = currentUser;
     if (user == null) return;
-    try {
-      await _client.from('profiles').delete().eq('id', user.id);
-    } catch (_) {}
+    final uid = user.id;
     try {
       await _client.storage.from(mediaBucket).remove([
-        '${user.id}/avatar.png',
-        '${user.id}/avatar.jpg',
-        '${user.id}/avatar.jpeg',
-        '${user.id}/avatar.webp',
+        '$uid/avatar.png',
+        '$uid/avatar.jpg',
+        '$uid/avatar.jpeg',
+        '$uid/avatar.webp',
+        '$uid/avatar.gif',
       ]);
+    } catch (_) {}
+    try {
+      await _client.from('profiles').delete().eq('id', uid);
     } catch (_) {}
     try {
       await _client.rpc('delete_own_account');
     } catch (e) {
       await _client.auth.signOut();
       throw AuthFailure(
-        "Akkaunt sessiyasi yopildi. To'liq o'chirish uchun Supabase SQL (delete_own_account) ni ishga tushiring.",
+        "Sessiya yopildi, lekin Auth dan o'chirish uchun supabase/setup.sql ni SQL Editorda ishga tushiring.",
       );
     }
-    await _client.auth.signOut();
+    try {
+      await _client.auth.signOut();
+    } catch (_) {}
   }
 
   static String mapAuthError(Object e) {
