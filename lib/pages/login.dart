@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/password_rules.dart';
 import 'package:zaizen/l10n/l10n_scope.dart';
 import 'package:zaizen/pages/forgot_password.dart';
+import 'package:zaizen/pages/no_internet_screen.dart';
 
 class AppColors {
   static const bgTop = Color(0xFF0D1526);
@@ -87,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen>
     HapticFeedback.selectionClick();
     setState(() => _googleLoading = true);
     try {
+      context.read<ConnectivityProvider>().lockDuringAuth();
       await AuthService.instance.signInWithGoogle();
     } catch (e) {
       if (mounted) _toast(e.toString(), error: true);
