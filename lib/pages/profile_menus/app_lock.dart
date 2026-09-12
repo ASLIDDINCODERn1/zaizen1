@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-// HomeScreen faylingizni import qiling
+import 'package:provider/provider.dart';
+import 'package:zaizen/l10n/app_strings.dart';
+import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/homepage.dart';
+import 'package:zaizen/ui/language_picker_bar.dart';
 
 class AppColors {
   static const Color bgTop = Color(0xFF0F172A);
@@ -20,7 +22,6 @@ class AppColors {
   static const Color success = Color(0xFF10B981);
 }
 
-/// ─── XAVFSIZLIK SERVISI (Honor X9 va barcha Androidlar uchun) ───────────────
 class SecurityHelper {
   static const String _keyPin = 'user_security_pin';
   static const String _keyPinEnabled = 'is_pin_enabled';
@@ -29,7 +30,6 @@ class SecurityHelper {
   static final LocalAuthentication _auth = LocalAuthentication();
   static bool isAuthenticating = false;
 
-  /// Qurilmada barmoq izi borligini aniqlash (Honor X9 datchigi uchun)
   static Future<bool> isFingerprintAvailable() async {
     try {
       final bool isSupported = await _auth.isDeviceSupported();
@@ -41,17 +41,14 @@ class SecurityHelper {
     }
   }
 
-  /// Telefon tizimidagi barmoq izini avtomatik chaqirish (Honor X9 ekran datchigi)
   static Future<bool> authenticateWithBiometrics() async {
     try {
       isAuthenticating = true;
-
-      // Honor X9 ekran osti datchigi uchun biometricOnly: false bo'lishi shart!
       final bool didAuth = await _auth.authenticate(
-        localizedReason: 'Kirish uchun ekrandagi barmoq izini bosing',
+        localizedReason: LanguageScope.strings.biometricReason,
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: false, // <-- Honor X9 ekran datchigini yoqadi
+          biometricOnly: false,
           useErrorDialogs: true,
           sensitiveTransaction: false,
         ),
@@ -101,7 +98,6 @@ class SecurityHelper {
   }
 }
 
-/// ─── LOGIN VA PIN O'RNATISH EKRANI ──────────────────────────────────────────
 enum LockScreenMode { unlock, createPin, confirmPin }
 
 class AppLockScreen extends StatefulWidget {
@@ -138,7 +134,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 350),
       vsync: this,
@@ -151,7 +146,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
           _shakeController.reverse();
         }
       });
-
     _initSecurity();
   }
 
@@ -159,22 +153,17 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     final savedPin = await SecurityHelper.getSavedPin();
     final fpSupported = await SecurityHelper.isFingerprintAvailable();
     final fpEnabled = await SecurityHelper.isFingerprintEnabled();
-
     if (!mounted) return;
-
     setState(() {
       _savedPin = savedPin;
       _isFingerprintSupported = fpSupported && fpEnabled;
       _isLoading = false;
-
       if (widget.isInitialSetup || savedPin == null || savedPin.isEmpty) {
         _mode = LockScreenMode.createPin;
       } else {
         _mode = LockScreenMode.unlock;
       }
     });
-
-    // Dasturga kirish rejimida Honor ekran barmoq izini avtomatik chiqaramiz
     if (_mode == LockScreenMode.unlock && _isFingerprintSupported) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Future.delayed(const Duration(milliseconds: 350), () {
@@ -187,24 +176,19 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   Future<void> _tryBiometrics() async {
     if (_isSubmitting || _isSuccess) return;
     _isSubmitting = true;
-
     final success = await SecurityHelper.authenticateWithBiometrics();
     _isSubmitting = false;
-
     if (success && mounted) {
       _goToHomeScreen();
     }
   }
 
-  /// To'g'ri kod terilganda yoki barmoq izi o'tganda to'g'ridan-to'g'ri HomeScreen ga o'tish
   void _goToHomeScreen() {
     if (_isSuccess) return;
     setState(() => _isSuccess = true);
     HapticFeedback.mediumImpact();
-
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
-
       if (widget.onAuthenticated != null) {
         try {
           widget.onAuthenticated!();
@@ -212,12 +196,10 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
           debugPrint('onAuthenticated callback xatosi: $e');
         }
       }
-
       if (widget.isInitialSetup && Navigator.of(context).canPop()) {
         Navigator.of(context).pop(true);
         return;
       }
-
       final destination = widget.nextScreen ?? const HomeScreen();
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
@@ -234,14 +216,12 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
 
   void _onNumberTap(String number) {
     if (_isSubmitting || _isSuccess) return;
-
     if (_enteredPin.length < 4) {
       HapticFeedback.lightImpact();
       setState(() {
         _enteredPin += number;
         _errorMessage = null;
       });
-
       if (_enteredPin.length == 4) {
         _handlePinEntered();
       }
@@ -250,7 +230,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
 
   void _onBackspaceTap() {
     if (_isSubmitting || _isSuccess) return;
-
     if (_enteredPin.isNotEmpty) {
       HapticFeedback.selectionClick();
       setState(() {
@@ -262,16 +241,14 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
 
   Future<void> _handlePinEntered() async {
     setState(() => _isSubmitting = true);
-
+    final s = context.read<LocaleProvider>().strings;
     if (_mode == LockScreenMode.unlock) {
-      // 1. PIN to'g'ri bo'lsa -> Darhol HomeScreen ga o'tadi
       if (_enteredPin == _savedPin) {
         _goToHomeScreen();
       } else {
-        _triggerError('PIN kod noto\'g\'ri!');
+        _triggerError(s.pinWrong);
       }
     } else if (_mode == LockScreenMode.createPin) {
-      // 2. PIN o'rnatish 1-bosqich tugadi
       await Future.delayed(const Duration(milliseconds: 150));
       setState(() {
         _tempNewPin = _enteredPin;
@@ -280,13 +257,12 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         _isSubmitting = false;
       });
     } else if (_mode == LockScreenMode.confirmPin) {
-      // 3. PIN o'rnatish 2-bosqich: Tasdiqlandi
       if (_enteredPin == _tempNewPin) {
         await SecurityHelper.savePin(_enteredPin);
         HapticFeedback.heavyImpact();
         _goToHomeScreen();
       } else {
-        _triggerError('Kodlar mos kelmadi! Qaytadan kiriting');
+        _triggerError(s.pinMismatch);
         setState(() {
           _mode = LockScreenMode.createPin;
           _tempNewPin = '';
@@ -306,38 +282,35 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     });
   }
 
-  String get _titleText {
+  String _titleOf(AppStrings s) {
     if (_isSuccess) {
-      if (_mode == LockScreenMode.unlock) {
-        return 'Muvaffaqiyatli!';
-      } else {
-        return 'Muvaffaqiyatli saqlandi!';
-      }
+      if (_mode == LockScreenMode.unlock) return s.pinSuccess;
+      return s.pinSaved;
     }
     switch (_mode) {
       case LockScreenMode.unlock:
-        return 'Xavfsizlik PIN kodi';
+        return s.pinUnlockTitle;
       case LockScreenMode.createPin:
-        return '1/2: Yangi PIN kiriting';
+        return s.pinCreateTitle;
       case LockScreenMode.confirmPin:
-        return '2/2: PIN kodni tasdiqlang';
+        return s.pinConfirmTitle;
     }
   }
 
-  String get _subtitleText {
+  String _subOf(AppStrings s) {
     if (_isSuccess) {
       if (widget.isInitialSetup && Navigator.of(context).canPop()) {
-        return 'Sozlamalar saqlandi';
+        return s.pinSaved;
       }
-      return 'Asosiy sahifaga o\'tilmoqda...';
+      return s.pinGoingHome;
     }
     switch (_mode) {
       case LockScreenMode.unlock:
-        return 'Dasturga kirish uchun PIN kodni tering';
+        return s.pinUnlockSub;
       case LockScreenMode.createPin:
-        return '4 xonali yangi PIN kod o\'ylab toping';
+        return s.pinCreateSub;
       case LockScreenMode.confirmPin:
-        return 'Tasdiqlash uchun xuddi shu kodni qayta tering';
+        return s.pinConfirmSub;
     }
   }
 
@@ -349,6 +322,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<LocaleProvider>().strings;
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.bgBottom,
@@ -373,20 +347,21 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               children: [
-                if (widget.isInitialSetup)
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () => Navigator.pop(context),
-                      child: const Icon(CupertinoIcons.xmark, color: AppColors.textPrimary),
-                    ),
-                  )
-                else
-                  const SizedBox(height: 36),
-
+                Row(
+                  children: [
+                    if (widget.isInitialSetup)
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () => Navigator.pop(context),
+                        child: const Icon(CupertinoIcons.xmark, color: AppColors.textPrimary),
+                      )
+                    else
+                      const SizedBox(width: 8),
+                    const Spacer(),
+                    const LanguagePickerBar(),
+                  ],
+                ),
                 const Spacer(),
-
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   width: 76,
@@ -408,9 +383,8 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 Text(
-                  _titleText,
+                  _titleOf(s),
                   style: TextStyle(
                     color: _isSuccess ? AppColors.success : AppColors.textPrimary,
                     fontSize: 22,
@@ -419,14 +393,11 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _subtitleText,
+                  _subOf(s),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
                 ),
-
                 const SizedBox(height: 32),
-
-                // 4 ta PIN nuqtasi
                 AnimatedBuilder(
                   animation: _shakeAnimation,
                   builder: (context, child) {
@@ -440,7 +411,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                     children: List.generate(4, (index) {
                       final bool isFilled = index < _enteredPin.length;
                       final bool isErr = _errorMessage != null;
-
                       Color dotColor;
                       if (_isSuccess) {
                         dotColor = AppColors.success;
@@ -451,7 +421,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                       } else {
                         dotColor = Colors.transparent;
                       }
-
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -470,21 +439,11 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                                         : AppColors.border,
                             width: 2,
                           ),
-                          boxShadow: (isFilled || _isSuccess) && !isErr
-                              ? [
-                                  BoxShadow(
-                                    color: (_isSuccess ? AppColors.success : AppColors.primary).withOpacity(0.4),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : null,
                         ),
                       );
                     }),
                   ),
                 ),
-
                 SizedBox(
                   height: 36,
                   child: Center(
@@ -496,11 +455,8 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                         : null,
                   ),
                 ),
-
                 const Spacer(),
-
                 _buildNumpad(),
-
                 const Spacer(flex: 2),
               ],
             ),
@@ -522,7 +478,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Barmoq izi tugmasi (Honor X9 ekran datchigini qayta chaqirish)
             SizedBox(
               width: 72,
               height: 72,
@@ -543,10 +498,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                     )
                   : const SizedBox.shrink(),
             ),
-
             _buildButton('0'),
-
-            // Backspace
             SizedBox(
               width: 72,
               height: 72,
@@ -590,13 +542,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
             shape: BoxShape.circle,
             color: AppColors.surface,
             border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.18),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Center(
             child: Text(
