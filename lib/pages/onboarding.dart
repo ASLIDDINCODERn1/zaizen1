@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final Widget? nextScreen;
+
+  const SplashScreen({
+    super.key,
+    this.nextScreen,
+  });
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -24,6 +29,21 @@ class _SplashScreenState extends State<SplashScreen>
     _scale = Tween<double>(begin: 0.72, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
+
+    if (widget.nextScreen != null) {
+      Future.delayed(const Duration(milliseconds: 2400), () {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 280),
+            pageBuilder: (_, _, _) => widget.nextScreen!,
+            transitionsBuilder: (_, animation, _, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+      });
+    }
   }
 
   @override
