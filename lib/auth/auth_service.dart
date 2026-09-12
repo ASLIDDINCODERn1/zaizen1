@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -140,9 +141,30 @@ class AuthService {
       if (!launched) {
         throw AuthFailure(LanguageScope.strings.authGoogleCanceled);
       }
+      await _waitForSession();
     } catch (e) {
       if (e is AuthFailure) rethrow;
       throw AuthFailure(mapAuthError(e));
+    }
+  }
+
+  Future<void> _waitForSession() async {
+    if (session != null) return;
+    final done = Completer<void>();
+    late final StreamSubscription sub;
+    sub = _client.auth.onAuthStateChange.listen((data) {
+      if (data.session != null && !done.isCompleted) {
+        done.complete();
+      }
+    });
+    try {
+      await done.future.timeout(const Duration(seconds: 90));
+    } on TimeoutException {
+      if (session == null) {
+        throw AuthFailure(LanguageScope.strings.authGoogleCanceled);
+      }
+    } finally {
+      await sub.cancel();
     }
   }
 
