@@ -14,9 +14,8 @@ class AppLanguage {
   });
 }
 
-/// Asosiy tillar — har birining yonida davlat bayrog'i.
 const List<AppLanguage> kSupportedLanguages = [
-  AppLanguage(code: 'uz', name: "O'zbekcha", nativeName: "O'zbek tili", flag: '🇿🇿', country: "O'zbekiston"),
+  AppLanguage(code: 'uz', name: "O'zbekcha", nativeName: "O'zbek tili", flag: '🇺🇿', country: "O'zbekiston"),
   AppLanguage(code: 'ru', name: 'Русский', nativeName: 'Русский язык', flag: '🇷🇺', country: 'Россия'),
   AppLanguage(code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', country: 'United Kingdom'),
   AppLanguage(code: 'ja', name: '日本語', nativeName: '日本語', flag: '🇯🇵', country: '日本'),
