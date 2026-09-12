@@ -172,7 +172,7 @@ class AuthService {
     await _client.storage.from('avatars').uploadBinary(
           path,
           bytes,
-          fileOptions: const FileOptions(upsert: true, contentType: 'image/$ext'),
+          fileOptions:  FileOptions(upsert: true, contentType: 'image/$ext'),
         );
     final url = _client.storage.from('avatars').getPublicUrl(path);
     final withTs = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
