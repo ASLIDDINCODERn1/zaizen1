@@ -69,16 +69,13 @@ class MyApp extends StatelessWidget {
       ),
       builder: (context, child) {
         StatusBarGuard.hide();
-        if (!net.isReady) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF020617),
-            body: Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))),
-          );
-        }
-        if (!net.isOnline) {
-          return const NoInternetScreen();
-        }
-        return child ?? const SizedBox.shrink();
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            child ?? const SizedBox.shrink(),
+            if (net.isReady && !net.isOnline) const NoInternetScreen(),
+          ],
+        );
       },
       home: AppLaunch.splashDone
           ? const AuthGate()

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zaizen/auth/auth_service.dart';
@@ -6,31 +8,48 @@ import 'package:zaizen/pages/login.dart';
 import 'package:zaizen/pages/update_password.dart';
 import 'package:zaizen/ui/language_picker_bar.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  Session? _session;
+  AuthChangeEvent? _event;
+  StreamSubscription<AuthState>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _session = AuthService.instance.session;
+    _sub = AuthService.instance.authChanges.listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _event = data.event;
+        _session = data.session ?? AuthService.instance.session;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: AuthService.instance.authChanges,
-      initialData: AuthState(
-        AuthChangeEvent.initialSession,
-        AuthService.instance.session,
-      ),
-      builder: (context, snapshot) {
-        final event = snapshot.data?.event;
-        final session = snapshot.data?.session ?? AuthService.instance.session;
+    final session = _session ?? AuthService.instance.session;
 
-        if (event == AuthChangeEvent.passwordRecovery) {
-          return const UpdatePasswordScreen();
-        }
-
-        if (session != null) {
-          return const HomeScreen();
-        }
-        return const _LoginWithLanguage();
-      },
-    );
+    if (_event == AuthChangeEvent.passwordRecovery) {
+      return const UpdatePasswordScreen();
+    }
+    if (session != null) {
+      return const HomeScreen();
+    }
+    return const _LoginWithLanguage();
   }
 }
 
@@ -39,10 +58,10 @@ class _LoginWithLanguage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return const Stack(
       children: [
-        const LoginScreen(),
-        const Positioned(
+        LoginScreen(),
+        Positioned(
           top: 0,
           left: 0,
           right: 0,
