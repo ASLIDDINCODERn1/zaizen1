@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:zaizen/auth/auth_service.dart';
+import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/profile_menus/language_screen.dart';
 import 'package:zaizen/pages/profile_menus/profile_sub.dart' hide LanguageScreen;
@@ -20,7 +21,8 @@ class _ProfileTabState extends State<ProfileTab> {
   bool _busy = false;
 
   Future<void> _editName(BuildContext context) async {
-    final ctrl = TextEditingController(text: AuthService.instance.displayName);
+    final store = context.read<ProfileStore>();
+    final ctrl = TextEditingController(text: store.name.isNotEmpty ? store.name : AuthService.instance.displayName);
     final ok = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
@@ -37,7 +39,7 @@ class _ProfileTabState extends State<ProfileTab> {
     );
     if (ok == true && ctrl.text.trim().isNotEmpty) {
       await AuthService.instance.updateProfile(fullName: ctrl.text.trim());
-      if (mounted) setState(() {});
+      if (mounted) await context.read<ProfileStore>().refresh();
     }
   }
 
@@ -49,7 +51,7 @@ class _ProfileTabState extends State<ProfileTab> {
       final bytes = await picked.readAsBytes();
       final ext = picked.name.contains('.') ? picked.name.split('.').last : 'jpg';
       await AuthService.instance.uploadAvatar(bytes, ext);
-      if (mounted) setState(() {});
+      if (mounted) await context.read<ProfileStore>().refresh();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -62,8 +64,9 @@ class _ProfileTabState extends State<ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
+    final profile = context.watch<ProfileStore>();
     final auth = AuthService.instance;
-    final avatar = auth.avatarUrl;
+    final avatar = profile.avatarUrl ?? auth.avatarUrl;
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
       physics: const BouncingScrollPhysics(),
@@ -110,7 +113,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      auth.displayName.isEmpty ? 'User' : auth.displayName,
+                      profile.name.isEmpty ? 'User' : profile.name,
                       style: const TextStyle(color: AppColors.textPrimary, fontSize: 19, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(width: 6),
@@ -119,7 +122,10 @@ class _ProfileTabState extends State<ProfileTab> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(auth.email, style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5)),
+              Text(
+                profile.email.isEmpty ? auth.email : profile.email,
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+              ),
             ],
           ),
         ),
@@ -205,7 +211,13 @@ class _ProfileTabState extends State<ProfileTab> {
             child: const Text("O'chirish"),
             onPressed: () async {
               Navigator.pop(ctx);
-              await AuthService.instance.deleteAccount();
+              try {
+                await AuthService.instance.deleteAccount();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                }
+              }
             },
           ),
         ],
