@@ -6,10 +6,14 @@ import 'package:provider/provider.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/login.dart' show AppColors;
 
-/// ─── INTERNET HOLATI BOSHQARUVI ──────────────────────────────────────────────
 class ConnectivityProvider extends ChangeNotifier {
   bool _isOnline = true;
+  bool _isReady = false;
+  ConnectivityResult _type = ConnectivityResult.none;
+
   bool get isOnline => _isOnline;
+  bool get isReady => _isReady;
+  ConnectivityResult get connectionType => _type;
 
   StreamSubscription<List<ConnectivityResult>>? _sub;
 
@@ -18,26 +22,35 @@ class ConnectivityProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    // Dastlabki holatni tekshirish
-    final result = await Connectivity().checkConnectivity();
-    _isOnline = _check(result);
-    notifyListeners();
-
-    // Real-time kuzatish
+    await refresh();
     _sub = Connectivity().onConnectivityChanged.listen((results) {
-      final online = _check(results);
-      if (online != _isOnline) {
-        _isOnline = online;
-        notifyListeners();
-      }
+      _apply(results);
     });
   }
 
-  bool _check(List<ConnectivityResult> results) {
-    return results.any((r) =>
-        r == ConnectivityResult.mobile ||
-        r == ConnectivityResult.wifi ||
-        r == ConnectivityResult.ethernet);
+  Future<void> refresh() async {
+    final result = await Connectivity().checkConnectivity();
+    _apply(result);
+  }
+
+  void _apply(List<ConnectivityResult> results) {
+    final hasWifi = results.contains(ConnectivityResult.wifi);
+    final hasMobile = results.contains(ConnectivityResult.mobile);
+    final hasEthernet = results.contains(ConnectivityResult.ethernet);
+    final online = hasWifi || hasMobile || hasEthernet;
+    final type = hasWifi
+        ? ConnectivityResult.wifi
+        : hasMobile
+            ? ConnectivityResult.mobile
+            : hasEthernet
+                ? ConnectivityResult.ethernet
+                : ConnectivityResult.none;
+
+    final changed = online != _isOnline || type != _type || !_isReady;
+    _isOnline = online;
+    _type = type;
+    _isReady = true;
+    if (changed) notifyListeners();
   }
 
   @override
@@ -47,7 +60,6 @@ class ConnectivityProvider extends ChangeNotifier {
   }
 }
 
-/// ─── NO INTERNET SCREEN ──────────────────────────────────────────────────────
 class NoInternetScreen extends StatefulWidget {
   const NoInternetScreen({super.key});
 
@@ -59,9 +71,11 @@ class _NoInternetScreenState extends State<NoInternetScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseCtrl;
   late AnimationController _waveCtrl;
+  late AnimationController _barCtrl;
 
   late Animation<double> _pulse;
   late List<Animation<double>> _waves;
+  bool _checking = false;
 
   @override
   void initState() {
@@ -91,13 +105,25 @@ class _NoInternetScreenState extends State<NoInternetScreen>
         ),
       );
     });
+
+    _barCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
   }
 
   @override
   void dispose() {
     _pulseCtrl.dispose();
     _waveCtrl.dispose();
+    _barCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _retry() async {
+    setState(() => _checking = true);
+    await context.read<ConnectivityProvider>().refresh();
+    if (mounted) setState(() => _checking = false);
   }
 
   @override
@@ -117,21 +143,19 @@ class _NoInternetScreenState extends State<NoInternetScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Animated WiFi signal icon
               SizedBox(
-                width: 160,
-                height: 160,
+                width: 180,
+                height: 180,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Radiating waves
                     ..._waves.asMap().entries.map((entry) {
                       return AnimatedBuilder(
                         animation: entry.value,
                         builder: (_, __) {
                           final opacity =
                               (1.0 - entry.value.value).clamp(0.0, 1.0);
-                          final size = 60 + entry.value.value * 100;
+                          final size = 70 + entry.value.value * 110;
                           return Container(
                             width: size,
                             height: size,
@@ -139,7 +163,7 @@ class _NoInternetScreenState extends State<NoInternetScreen>
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: const Color(0xFFEF4444)
-                                    .withValues(alpha: opacity * 0.5),
+                                    .withValues(alpha: opacity * 0.55),
                                 width: 2,
                               ),
                             ),
@@ -147,12 +171,11 @@ class _NoInternetScreenState extends State<NoInternetScreen>
                         },
                       );
                     }),
-                    // Center icon
                     ScaleTransition(
                       scale: _pulse,
                       child: Container(
-                        width: 72,
-                        height: 72,
+                        width: 88,
+                        height: 88,
                         decoration: BoxDecoration(
                           color: const Color(0xFFEF4444).withValues(alpha: 0.15),
                           shape: BoxShape.circle,
@@ -161,23 +184,52 @@ class _NoInternetScreenState extends State<NoInternetScreen>
                             width: 2,
                           ),
                         ),
-                        child: const Icon(
-                          CupertinoIcons.wifi_slash,
-                          color: Color(0xFFEF4444),
-                          size: 32,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              CupertinoIcons.wifi_slash,
+                              color: Color(0xFFEF4444),
+                              size: 34,
+                            ),
+                            const SizedBox(height: 4),
+                            AnimatedBuilder(
+                              animation: _barCtrl,
+                              builder: (_, __) {
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: List.generate(3, (i) {
+                                    final t = (_barCtrl.value + i * 0.22) % 1.0;
+                                    final h = 4.0 + (t < 0.5 ? t : 1 - t) * 10;
+                                    return Container(
+                                      width: 4,
+                                      height: h,
+                                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEF4444).withValues(alpha: 0.85),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    );
+                                  }),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
               Text(
                 s.noInternet,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
                 ),
               ),
               const SizedBox(height: 8),
@@ -193,15 +245,14 @@ class _NoInternetScreenState extends State<NoInternetScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 36),
-              // Retry button
+              const SizedBox(height: 12),
+              const Text(
+                'Wi-Fi  •  Mobile data',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 32),
               GestureDetector(
-                onTap: () async {
-                  final result = await Connectivity().checkConnectivity();
-                  final provider = context.read<ConnectivityProvider>();
-                  // Provider o'zi stream orqali yangilanadi, bu faqat tezroq ko'rsatish uchun
-                  final _ = result;
-                },
+                onTap: _checking ? null : _retry,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 32, vertical: 14),
@@ -216,14 +267,23 @@ class _NoInternetScreenState extends State<NoInternetScreen>
                       ),
                     ],
                   ),
-                  child: Text(
-                    s.retry,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _checking
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          s.retry,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ],
