@@ -8,7 +8,6 @@ import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
-import 'package:zaizen/pages/onboarding.dart';
 import 'package:zaizen/ui/status_bar_guard.dart';
 
 const _supabaseUrl = 'https://vazzsnxyqbumqstjgsln.supabase.co';
@@ -65,7 +64,11 @@ class MyApp extends StatelessWidget {
         return const Locale('uz');
       },
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF3B82F6),
+          brightness: Brightness.dark,
+        ),
+        scaffoldBackgroundColor: const Color(0xFF020617),
       ),
       builder: (context, child) {
         StatusBarGuard.hide();
@@ -77,9 +80,7 @@ class MyApp extends StatelessWidget {
           ],
         );
       },
-      home: AppLaunch.splashDone
-          ? const AuthGate()
-          : const SplashScreen(nextScreen: AuthGate()),
+      home: const AuthGate(),
       debugShowCheckedModeBanner: false,
     );
   }
