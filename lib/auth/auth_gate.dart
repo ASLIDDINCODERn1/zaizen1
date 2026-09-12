@@ -15,7 +15,7 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Session? _session;
   AuthChangeEvent? _event;
   StreamSubscription<AuthState>? _sub;
@@ -23,6 +23,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _session = AuthService.instance.session;
     _sub = AuthService.instance.authChanges.listen((data) {
       if (!mounted) return;
@@ -35,8 +36,19 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final current = AuthService.instance.session;
+    if (!mounted) return;
+    if (current?.accessToken != _session?.accessToken) {
+      setState(() => _session = current);
+    }
   }
 
   @override
