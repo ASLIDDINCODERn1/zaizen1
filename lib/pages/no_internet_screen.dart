@@ -6,26 +6,35 @@ import 'package:provider/provider.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/login.dart' show AppColors;
 
-class ConnectivityProvider extends ChangeNotifier {
+/// ─── INTERNET HOLATI BOSHQARUVI ──────────────────────────────────────────────
+class ConnectivityProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _isOnline = true;
   bool _isReady = false;
+  int _reconnectEpoch = 0;
   ConnectivityResult _type = ConnectivityResult.none;
 
   bool get isOnline => _isOnline;
   bool get isReady => _isReady;
+  int get reconnectEpoch => _reconnectEpoch;
   ConnectivityResult get connectionType => _type;
 
   StreamSubscription<List<ConnectivityResult>>? _sub;
 
   ConnectivityProvider() {
+    WidgetsBinding.instance.addObserver(this);
     _init();
   }
 
   Future<void> _init() async {
     await refresh();
-    _sub = Connectivity().onConnectivityChanged.listen((results) {
-      _apply(results);
-    });
+    _sub = Connectivity().onConnectivityChanged.listen(_apply);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      refresh();
+    }
   }
 
   Future<void> refresh() async {
@@ -46,15 +55,18 @@ class ConnectivityProvider extends ChangeNotifier {
                 ? ConnectivityResult.ethernet
                 : ConnectivityResult.none;
 
+    final cameOnline = _isReady && !_isOnline && online;
     final changed = online != _isOnline || type != _type || !_isReady;
     _isOnline = online;
     _type = type;
     _isReady = true;
-    if (changed) notifyListeners();
+    if (cameOnline) _reconnectEpoch++;
+    if (changed || cameOnline) notifyListeners();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sub?.cancel();
     super.dispose();
   }
