@@ -3,9 +3,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zaizen/auth/auth_service.dart';
+import 'package:zaizen/auth/password_rules.dart';
 import 'package:zaizen/pages/forgot_password.dart';
 
-/// ─── Color Palette — Blue & Black ────────────────────────────────
 class AppColors {
   static const bgTop = Color(0xFF0D1526);
   static const bgBottom = Color(0xFF05070C);
@@ -19,6 +19,7 @@ class AppColors {
   static const textSecondary = Color(0xFF9AA3B2);
   static const textMuted = Color(0xFF6B7280);
   static const google = Color(0xFFEA4335);
+  static const error = Color(0xFFEF4444);
 }
 
 class LoginScreen extends StatefulWidget {
@@ -50,8 +51,11 @@ class _LoginScreenState extends State<LoginScreen>
     _isSignUp = widget.startOnSignUp;
     _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1100),
     )..forward();
+    _passCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -91,24 +95,30 @@ class _LoginScreenState extends State<LoginScreen>
     HapticFeedback.mediumImpact();
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
-    if (email.isEmpty || pass.isEmpty) {
-      _toast('Email va parol kiriting', error: true);
+    final emailErr = PasswordRules.emailError(email);
+    if (emailErr != null) {
+      _toast(emailErr, error: true);
       return;
     }
     if (_isSignUp) {
-      final name = _nameCtrl.text.trim();
-      if (name.isEmpty) {
-        _toast('Ismingizni kiriting', error: true);
+      final nameErr = PasswordRules.nameError(_nameCtrl.text);
+      if (nameErr != null) {
+        _toast(nameErr, error: true);
         return;
       }
-      if (pass.length < 6) {
-        _toast("Parol kamida 6 ta belgidan iborat bo'lsin", error: true);
+      final passErr = PasswordRules.passwordError(pass, email: email);
+      if (passErr != null) {
+        _toast(passErr, error: true);
         return;
       }
-      if (pass != _confirmCtrl.text) {
-        _toast('Parollar mos emas', error: true);
+      final confirmErr = PasswordRules.confirmError(pass, _confirmCtrl.text);
+      if (confirmErr != null) {
+        _toast(confirmErr, error: true);
         return;
       }
+    } else if (pass.isEmpty) {
+      _toast('Parol kiriting', error: true);
+      return;
     }
 
     setState(() => _loading = true);
@@ -146,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen>
         return Opacity(
           opacity: curved.value.clamp(0.0, 1.0),
           child: Transform.translate(
-            offset: Offset(0, (1 - curved.value) * 16),
+            offset: Offset(0, (1 - curved.value) * 22),
             child: child,
           ),
         );
@@ -233,13 +243,29 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                _isSignUp
-                                    ? "Yangi hisob oching"
-                                    : 'Hisobingizga kiring',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 14.5,
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 280),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                transitionBuilder: (child, anim) {
+                                  return FadeTransition(
+                                    opacity: anim,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, 0.12),
+                                        end: Offset.zero,
+                                      ).animate(anim),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  _isSignUp ? "Yangi hisob oching" : 'Hisobingizga kiring',
+                                  key: ValueKey(_isSignUp),
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 14.5,
+                                  ),
                                 ),
                               ),
                             ],
@@ -264,11 +290,14 @@ class _LoginScreenState extends State<LoginScreen>
                                   children: [
                                     _ModeSwitch(
                                       isSignUp: _isSignUp,
-                                      onChanged: (v) => setState(() => _isSignUp = v),
+                                      onChanged: (v) {
+                                        if (v == _isSignUp) return;
+                                        setState(() => _isSignUp = v);
+                                      },
                                     ),
                                     const SizedBox(height: 20),
                                     AnimatedSize(
-                                      duration: const Duration(milliseconds: 240),
+                                      duration: const Duration(milliseconds: 360),
                                       curve: Curves.easeOutCubic,
                                       child: Column(
                                         children: [
@@ -301,6 +330,8 @@ class _LoginScreenState extends State<LoginScreen>
                                             ),
                                           ),
                                           if (_isSignUp) ...[
+                                            const SizedBox(height: 10),
+                                            _PasswordStrengthBar(password: _passCtrl.text),
                                             const SizedBox(height: 14),
                                             _Field(
                                               label: 'Parolni tasdiqlang',
@@ -322,10 +353,27 @@ class _LoginScreenState extends State<LoginScreen>
                                                 padding: EdgeInsets.zero,
                                                 minSize: 0,
                                                 onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    CupertinoPageRoute(
-                                                      builder: (_) => const ForgotPasswordScreen(),
+                                                  Navigator.of(context).push(
+                                                    PageRouteBuilder(
+                                                      transitionDuration: const Duration(milliseconds: 380),
+                                                      reverseTransitionDuration: const Duration(milliseconds: 280),
+                                                      pageBuilder: (_, anim, __) => const ForgotPasswordScreen(),
+                                                      transitionsBuilder: (_, anim, __, child) {
+                                                        final curved = CurvedAnimation(
+                                                          parent: anim,
+                                                          curve: Curves.easeOutCubic,
+                                                        );
+                                                        return FadeTransition(
+                                                          opacity: curved,
+                                                          child: SlideTransition(
+                                                            position: Tween<Offset>(
+                                                              begin: const Offset(0.06, 0),
+                                                              end: Offset.zero,
+                                                            ).animate(curved),
+                                                            child: child,
+                                                          ),
+                                                        );
+                                                      },
                                                     ),
                                                   );
                                                 },
@@ -428,7 +476,8 @@ class _ModeSwitch extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -508,6 +557,54 @@ class _Field extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: AppColors.borderFocused, width: 1.4),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PasswordStrengthBar extends StatelessWidget {
+  final String password;
+  const _PasswordStrengthBar({required this.password});
+
+  @override
+  Widget build(BuildContext context) {
+    final score = PasswordRules.strength(password);
+    final colors = [
+      const Color(0xFFEF4444),
+      const Color(0xFFF97316),
+      const Color(0xFFEAB308),
+      const Color(0xFF22C55E),
+      const Color(0xFF3B82F6),
+    ];
+    final color = colors[score.clamp(0, 4)];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(4, (i) {
+            final on = score > i;
+            return Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                height: 4,
+                margin: EdgeInsets.only(right: i == 3 ? 0 : 5),
+                decoration: BoxDecoration(
+                  color: on ? color : const Color(0xFF232838),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 6),
+        AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 220),
+          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+          child: Text(
+            password.isEmpty ? '8+ belgi, harf va raqam' : PasswordRules.strengthLabel(score),
           ),
         ),
       ],
