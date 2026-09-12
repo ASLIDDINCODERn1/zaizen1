@@ -6,7 +6,8 @@ import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/profile_menus/language_screen.dart';
-import 'package:zaizen/pages/profile_menus/profile_sub.dart' hide LanguageScreen;
+import 'package:zaizen/pages/profile_menus/personal_info.dart';
+import 'package:zaizen/pages/profile_menus/profile_sub.dart' hide LanguageScreen, PersonalInfoScreen;
 import 'package:zaizen/pages/profile_menus/security_tab.dart';
 import 'login.dart' show AppColors;
 
