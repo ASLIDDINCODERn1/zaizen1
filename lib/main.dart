@@ -3,11 +3,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zaizen/auth/auth_gate.dart';
+import 'package:zaizen/auth/auth_links.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
+import 'package:zaizen/pages/onboarding.dart';
 import 'package:zaizen/ui/status_bar_guard.dart';
 
 const _supabaseUrl = 'https://vazzsnxyqbumqstjgsln.supabase.co';
@@ -25,6 +27,7 @@ Future<void> main() async {
     ),
   );
   AuthService.instance.startSessionListener();
+  await AuthLinks.instance.start();
   await StatusBarGuard.hide();
   runApp(
     MultiProvider(
@@ -68,7 +71,7 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFF3B82F6),
           brightness: Brightness.dark,
         ),
-        scaffoldBackgroundColor: const Color(0xFF020617),
+        scaffoldBackgroundColor: const Color(0xFF0A3D91),
       ),
       builder: (context, child) {
         StatusBarGuard.hide();
@@ -80,7 +83,7 @@ class MyApp extends StatelessWidget {
           ],
         );
       },
-      home: const AuthGate(),
+      home: const SplashScreen(nextScreen: AuthGate()),
       debugShowCheckedModeBanner: false,
     );
   }
