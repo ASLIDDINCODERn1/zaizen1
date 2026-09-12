@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/homepage.dart';
+import 'package:zaizen/pages/no_internet_screen.dart';
 import 'package:zaizen/pages/onboarding.dart';
 import 'package:zaizen/pages/profile_menus/app_lock.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LocaleProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -25,29 +30,54 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Zaizen App',
       locale: localeProvider.locale,
-      supportedLocales: const [
-        Locale('uz'),
-        Locale('ru'),
-        Locale('en'),
-        Locale('ja'),
+      supportedLocales: [
+        for (final lang in kSupportedLanguages) Locale(lang.code),
       ],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      localeResolutionCallback: (locale, supported) {
+        if (locale == null) return const Locale('uz');
+        for (final s in supported) {
+          if (s.languageCode == locale.languageCode) return s;
+        }
+        return const Locale('uz');
+      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const SplashScreen(
-        nextScreen: HomeScreen(),
+      home: const ConnectivityGate(
+        child: SplashScreen(
+          nextScreen: HomeScreen(),
+        ),
       ),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-/// ─── HAR SAFAR ILOVADAN CHIQIB QAYTGANDA QULFLASH (AppSecurityGate) ────────
+class ConnectivityGate extends StatelessWidget {
+  final Widget child;
+  const ConnectivityGate({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final net = context.watch<ConnectivityProvider>();
+    if (!net.isReady) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF020617),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))),
+      );
+    }
+    if (!net.isOnline) {
+      return const NoInternetScreen();
+    }
+    return child;
+  }
+}
+
 class AppSecurityGate extends StatefulWidget {
   final Widget child;
   const AppSecurityGate({super.key, required this.child});
@@ -86,7 +116,6 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Barmoq izi tizim oynasi ochiqligida qayta qulflamaymiz
     if (SecurityHelper.isAuthenticating) return;
 
     if (state == AppLifecycleState.paused) {
@@ -95,8 +124,6 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
       if (_pausedTime != null) {
         final diff = DateTime.now().difference(_pausedTime!);
         _pausedTime = null;
-
-        // Ilovadan chindan ham 800ms dan ko'proq chiqib ketilgan bo'lsa qulflaymiz
         if (diff.inMilliseconds > 800) {
           _checkInitialLock();
         }
