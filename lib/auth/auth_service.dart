@@ -75,7 +75,10 @@ class AuthService {
       final res = await _client.auth.signUp(
         email: email.trim(),
         password: password,
-        data: {'full_name': fullName.trim()},
+        data: {
+          'full_name': fullName.trim(),
+          'name': fullName.trim(),
+        },
         emailRedirectTo: redirectUrl,
       );
       if (res.session != null) {
@@ -115,22 +118,6 @@ class AuthService {
       );
       if (!ok) {
         throw AuthFailure('Google orqali kirish bekor qilindi.');
-      }
-    } catch (e) {
-      if (e is AuthFailure) rethrow;
-      throw AuthFailure(mapAuthError(e));
-    }
-  }
-
-  Future<void> signInWithFacebook() async {
-    try {
-      final ok = await _client.auth.signInWithOAuth(
-        OAuthProvider.facebook,
-        redirectTo: redirectUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
-      );
-      if (!ok) {
-        throw AuthFailure('Facebook orqali kirish bekor qilindi.');
       }
     } catch (e) {
       if (e is AuthFailure) rethrow;
@@ -224,7 +211,7 @@ class AuthService {
       if (msg.contains('unsupported provider') ||
           msg.contains('provider is not enabled') ||
           msg.contains('validation failed')) {
-        return "Google/Facebook provider Supabase dashboardda yoqilmagan.";
+        return "Google provider Supabase dashboardda yoqilmagan.";
       }
       if (msg.contains('rate limit') || msg.contains('over_email_send_rate')) {
         return "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.";
@@ -234,7 +221,7 @@ class AuthService {
     if (raw.contains('unsupported provider') ||
         raw.contains('provider is not enabled') ||
         raw.contains('unable to exchange external code')) {
-      return "Google/Facebook provider Supabase dashboardda yoqilmagan yoki Client ID noto'g'ri.";
+      return "Google provider Supabase dashboardda yoqilmagan yoki Client ID noto'g'ri.";
     }
     if (raw.contains('network') || raw.contains('socket') || raw.contains('failed host')) {
       return "Internet yo'q yoki serverga ulanib bo'lmadi.";
