@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 1100),
     );
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
@@ -39,11 +39,11 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
-    if (AppLaunch.splashDone || AuthService.instance.session != null) {
+    if (AppLaunch.splashDone) {
       _goNext(immediate: true);
     } else {
       _controller.forward();
-      Future.delayed(const Duration(milliseconds: 1100), () {
+      Future.delayed(const Duration(milliseconds: 1400), () {
         if (mounted) _goNext();
       });
     }
@@ -53,9 +53,8 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     AppLaunch.splashDone = true;
 
-    final session = AuthService.instance.session;
     Widget target = widget.nextScreen;
-
+    final session = AuthService.instance.session;
     if (session != null) {
       final savedPin = await SecurityHelper.getSavedPin();
       if (!mounted) return;
