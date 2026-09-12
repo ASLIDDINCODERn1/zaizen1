@@ -1,3 +1,5 @@
+import 'package:zaizen/l10n/app_strings.dart';
+
 /// Oddiy, lekin mustahkam parol/email/ism tekshiruvi.
 class PasswordRules {
   PasswordRules._();
@@ -28,55 +30,52 @@ class PasswordRules {
     'abc12345',
   };
 
-  static final _emailRe = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
+  static final _emailRe = RegExp(r'[^\s@]+@[^\s@]+\.[^\s@]{2,}$'.replaceFirst('^', r'^'));
   static final _letterRe = RegExp(r'[A-Za-zА-яЁёЎўҚқҒғҲҳ]');
   static final _digitRe = RegExp(r'\d');
 
   static String? emailError(String email) {
+    final s = LanguageScope.strings;
     final v = email.trim();
-    if (v.isEmpty) return 'Email kiriting.';
-    if (!_emailRe.hasMatch(v)) return "Email formati noto'g'ri.";
+    if (v.isEmpty) return s.authEnterEmail;
+    if (!_emailRe.hasMatch(v)) return s.authBadEmail;
     return null;
   }
 
   static String? nameError(String name) {
+    final s = LanguageScope.strings;
     final v = name.trim();
-    if (v.isEmpty) return 'Ismingizni kiriting.';
-    if (v.length < 2) return "Ism kamida 2 ta belgidan iborat bo'lsin.";
+    if (v.isEmpty) return s.authEnterName;
+    if (v.length < 2) return s.authNameShort;
     return null;
   }
 
   static String? passwordError(String password, {String? email}) {
+    final s = LanguageScope.strings;
     final p = password;
-    if (p.isEmpty) return 'Parol kiriting.';
-    if (p.contains(' ')) return "Parolda bo'sh joy bo'lmasin.";
-    if (p.length < minLength) {
-      return "Parol kamida $minLength ta belgidan iborat bo'lsin.";
-    }
-    if (p.length > maxLength) {
-      return "Parol $maxLength belgidan oshmasin.";
-    }
-    if (!_letterRe.hasMatch(p)) return "Parolda kamida 1 ta harf bo'lsin.";
-    if (!_digitRe.hasMatch(p)) return "Parolda kamida 1 ta raqam bo'lsin.";
-    if (_weak.contains(p.toLowerCase())) {
-      return "Bu parol juda oddiy. Boshqasini tanlang.";
-    }
+    if (p.isEmpty) return s.authEnterPassword;
+    if (p.contains(' ')) return s.authPasswordSpace;
+    if (p.length < minLength) return s.authPasswordShort;
+    if (p.length > maxLength) return s.authPasswordShort;
+    if (!_letterRe.hasMatch(p)) return s.authPasswordLetter;
+    if (!_digitRe.hasMatch(p)) return s.authPasswordDigit;
+    if (_weak.contains(p.toLowerCase())) return s.authPasswordCommon;
     if (email != null && email.trim().isNotEmpty) {
       final local = email.trim().split('@').first.toLowerCase();
       if (local.length >= 3 && p.toLowerCase().contains(local)) {
-        return "Parol emailingizga o'xshamasin.";
+        return s.authPasswordLikeEmail;
       }
     }
     return null;
   }
 
   static String? confirmError(String password, String confirm) {
-    if (confirm.isEmpty) return 'Parolni tasdiqlang.';
-    if (password != confirm) return 'Parollar mos emas.';
+    final s = LanguageScope.strings;
+    if (confirm.isEmpty) return s.authConfirmPassword;
+    if (password != confirm) return s.authPasswordMismatch;
     return null;
   }
 
-  /// 0 zaif … 4 juda yaxshi
   static int strength(String password) {
     if (password.isEmpty) return 0;
     var score = 0;
@@ -93,16 +92,17 @@ class PasswordRules {
   }
 
   static String strengthLabel(int score) {
+    final code = LanguageScope.code;
     switch (score) {
       case 0:
       case 1:
-        return 'Zaif';
+        return {'uz': 'Zaif', 'ru': 'Слабый', 'ja': '弱い'}[code] ?? 'Weak';
       case 2:
-        return "O'rtacha";
+        return {'uz': "O'rtacha", 'ru': 'Средний', 'ja': '普通'}[code] ?? 'Fair';
       case 3:
-        return 'Yaxshi';
+        return {'uz': 'Yaxshi', 'ru': 'Хороший', 'ja': '良い'}[code] ?? 'Good';
       default:
-        return 'Mustahkam';
+        return {'uz': 'Mustahkam', 'ru': 'Надёжный', 'ja': '強い'}[code] ?? 'Strong';
     }
   }
 }
