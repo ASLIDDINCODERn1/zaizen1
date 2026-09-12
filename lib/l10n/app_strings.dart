@@ -75,7 +75,7 @@ class AppStrings {
 
   String get welcome => _t(uz: 'Xush kelibsiz,', ru: 'Добро пожаловать,', en: 'Welcome,', ja: 'ようこそ、');
   String get welcomeLogin => _t(uz: 'Xush kelibsiz!', ru: 'Добро пожаловать!', en: 'Welcome!', ja: 'ようこそ！');
-  String get loginSubtitle => _t(uz: 'Hisobingizga kiring va davom eting', ru: 'Войдите в аккаунт, чтобы продолжить', en: 'Sign in to your account to continue', ja: '続行するにはアカウントにログインしてください');
+  String get loginSubtitle => _t(uz: 'Hisobingizga kiring va davom eting', ru: 'Войдите в аккаунт, чтобы продолжить', en: 'Sign in to your account to continue', ja: '継続するにはアカウントにログインしてください');
   String get emailAddress => _t(uz: 'Email manzil', ru: 'Эл. почта', en: 'Email address', ja: 'メールアドレス');
   String get password => _t(uz: 'Parol', ru: 'Пароль', en: 'Password', ja: 'パスワード');
   String get rememberMe => _t(uz: 'Meni eslab qol', ru: 'Запомнить меня', en: 'Remember me', ja: 'ログイン状態を保持');
@@ -167,6 +167,22 @@ class AppStrings {
   String get authPhotoTooLarge => _t(uz: "Rasm 5 MB dan oshmasin.", ru: 'Фото не должно быть больше 5 МБ.', en: 'Photo must be 5 MB or smaller.', ja: '写真は5MB以下にしてください。');
   String get biometricReason => _t(uz: 'Kirish uchun ekrandagi barmoq izini bosing', ru: 'Нажмите датчик отпечатка, чтобы войти', en: 'Use your fingerprint to unlock', ja: '指紋でロックを解除してください');
   String get pinGoingHome => _t(uz: "Asosiy sahifaga o'tilmoqda...", ru: 'Переход на главный экран...', en: 'Opening the home screen...', ja: 'ホーム画面を開いています...');
+  String get deviceProtection => _t(uz: 'Qurilma himoyasi', ru: 'Защита устройства', en: 'Device protection', ja: 'デバイス保護');
+  String get setPin => _t(uz: "PIN kod o'rnatish", ru: 'Установить PIN-код', en: 'Set PIN', ja: 'PINを設定');
+  String get changePin => _t(uz: "PIN kodni o'zgartirish", ru: 'Изменить PIN-код', en: 'Change PIN', ja: 'PINを変更');
+  String get deletePin => _t(uz: "PIN kodni o'chirish", ru: 'Удалить PIN-код', en: 'Delete PIN', ja: 'PINを削除');
+  String get confirmDeletePin => _t(uz: "Haqiqatan ham PIN kod va barmoq izi xavfsizlik qulfini butunlay o'chirmoqchimisiz?", ru: 'Удалить PIN-код и защиту по отпечатку полностью?', en: 'Remove the PIN and fingerprint lock completely?', ja: 'PINと指紋ロックを完全に削除しますか？');
+  String get biometricProtection => _t(uz: 'Biometrik himoya', ru: 'Биометрическая защита', en: 'Biometric protection', ja: '生体認証');
+  String get fingerprintToggle => _t(uz: 'Barmoq izi (Fingerprint)', ru: 'Отпечаток пальца (Fingerprint)', en: 'Fingerprint', ja: '指紋認証');
+  String get fingerprintToggleDesc => _t(uz: 'Dasturga tezkor kirish uchun', ru: 'Для быстрого входа в приложение', en: 'Quick access to the app', ja: 'アプリへの素早いアクセス');
+  String get fingerprintNeedPin => _t(uz: "Avval PIN kod o'rnating", ru: 'Сначала установите PIN-код', en: 'Set a PIN first', ja: '先にPINを設定してください');
+  String get securityHint => _t(
+    uz: "PIN kod yoki barmoq izi o'rnatilgach, ilovadan chiqib qayta kirganingizda har safar xavfsizlik tekshiruvi amalga oshiriladi.",
+    ru: 'После установки PIN или отпечатка при каждом входе в приложение будет запрашиваться проверка безопасности.',
+    en: 'After a PIN or fingerprint is set, a security check runs every time you leave and reopen the app.',
+    ja: 'PINまたは指紋を設定すると、アプリを閉じて再度開くたびにセキュリティ確認が行われます。',
+  );
+  String get pinDeleted => _t(uz: "PIN kod o'chirildi", ru: 'PIN-код удалён', en: 'PIN deleted', ja: 'PINを削除しました');
 
   String _t({required String uz, required String ru, required String en, required String ja}) {
     switch (languageCode) {
