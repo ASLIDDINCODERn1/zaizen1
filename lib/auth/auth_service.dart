@@ -129,16 +129,29 @@ class AuthService {
 
   Future<void> signInWithGoogle() async {
     try {
-      final ok = await _client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: redirectUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
-        queryParams: const {
-          'access_type': 'offline',
-          'prompt': 'select_account',
-        },
-      );
-      if (!ok) {
+      var launched = false;
+      try {
+        launched = await _client.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: redirectUrl,
+          authScreenLaunchMode: LaunchMode.inAppBrowserView,
+          queryParams: const {
+            'access_type': 'offline',
+            'prompt': 'select_account',
+          },
+        );
+      } catch (_) {
+        launched = await _client.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: redirectUrl,
+          authScreenLaunchMode: LaunchMode.externalApplication,
+          queryParams: const {
+            'access_type': 'offline',
+            'prompt': 'select_account',
+          },
+        );
+      }
+      if (!launched) {
         throw AuthFailure(LanguageScope.strings.authGoogleCanceled);
       }
       await _waitForSession();
@@ -148,7 +161,7 @@ class AuthService {
     }
   }
 
-  Future<void> _waitForSession({Duration timeout = const Duration(seconds: 45)}) async {
+  Future<void> _waitForSession({Duration timeout = const Duration(seconds: 90)}) async {
     if (session != null) return;
     final completer = Completer<void>();
     late final StreamSubscription sub;

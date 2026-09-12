@@ -9,7 +9,6 @@ import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
 import 'package:zaizen/pages/onboarding.dart';
-import 'package:zaizen/pages/profile_menus/app_lock.dart';
 import 'package:zaizen/ui/status_bar_guard.dart';
 
 const _supabaseUrl = 'https://vazzsnxyqbumqstjgsln.supabase.co';
@@ -79,85 +78,12 @@ class MyApp extends StatelessWidget {
         if (!net.isOnline) {
           return const NoInternetScreen();
         }
-        return KeyedSubtree(
-          key: ValueKey('online-${net.reconnectEpoch}'),
-          child: child ?? const SizedBox.shrink(),
-        );
+        return child ?? const SizedBox.shrink();
       },
-      home: const SplashScreen(
-        nextScreen: AuthGate(),
-      ),
+      home: AppLaunch.splashDone
+          ? const AuthGate()
+          : const SplashScreen(nextScreen: AuthGate()),
       debugShowCheckedModeBanner: false,
     );
-  }
-}
-
-class AppSecurityGate extends StatefulWidget {
-  final Widget child;
-  const AppSecurityGate({super.key, required this.child});
-
-  @override
-  State<AppSecurityGate> createState() => _AppSecurityGateState();
-}
-
-class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingObserver {
-  bool _isLocked = false;
-  bool _isInitialized = false;
-  DateTime? _pausedTime;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _checkInitialLock();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  Future<void> _checkInitialLock() async {
-    final pin = await SecurityHelper.getSavedPin();
-    if (!mounted) return;
-    setState(() {
-      _isLocked = pin != null && pin.isNotEmpty;
-      _isInitialized = true;
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (SecurityHelper.isAuthenticating) return;
-    if (state == AppLifecycleState.paused) {
-      _pausedTime = DateTime.now();
-    } else if (state == AppLifecycleState.resumed) {
-      if (_pausedTime != null) {
-        final diff = DateTime.now().difference(_pausedTime!);
-        _pausedTime = null;
-        if (diff.inMilliseconds > 800) {
-          _checkInitialLock();
-        }
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF020617),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))),
-      );
-    }
-    if (_isLocked) {
-      return AppLockScreen(
-        onAuthenticated: () {
-          setState(() => _isLocked = false);
-        },
-      );
-    }
-    return widget.child;
   }
 }
