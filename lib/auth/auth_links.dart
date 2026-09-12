@@ -22,7 +22,9 @@ class AuthLinks {
   }
 
   Future<void> consume(Uri uri) async {
-    if (!uri.toString().contains('login-callback')) return;
+    final raw = uri.toString();
+    if (!raw.contains('login-callback')) return;
+    if (Supabase.instance.client.auth.currentSession != null) return;
     try {
       await Supabase.instance.client.auth.getSessionFromUrl(uri);
     } catch (_) {}
