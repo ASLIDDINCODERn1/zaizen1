@@ -8,6 +8,8 @@ class AuthService {
 
   static const redirectUrl = 'io.zaizen.app://login-callback/';
 
+  bool _listening = false;
+
   SupabaseClient get _client => Supabase.instance.client;
 
   User? get currentUser => _client.auth.currentUser;
@@ -20,7 +22,9 @@ class AuthService {
     final user = currentUser;
     if (user == null) return '';
     final meta = user.userMetadata ?? {};
-    return (meta['full_name'] ?? meta['name'] ?? user.email ?? 'User').toString();
+    final name = (meta['full_name'] ?? meta['name'] ?? '').toString().trim();
+    if (name.isNotEmpty) return name;
+    return user.email ?? 'User';
   }
 
   String get email => currentUser?.email ?? '';
@@ -34,42 +38,104 @@ class AuthService {
     return null;
   }
 
-  Future<void> signInWithEmail(String email, String password) async {
-    await _client.auth.signInWithPassword(email: email.trim(), password: password);
-    await upsertProfile();
+  void startSessionListener() {
+    if (_listening) return;
+    _listening = true;
+    _client.auth.onAuthStateChange.listen((data) async {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedIn ||
+          event == AuthChangeEvent.userUpdated ||
+          event == AuthChangeEvent.tokenRefreshed) {
+        try {
+          await upsertProfile();
+        } catch (_) {}
+      }
+    });
   }
 
-  Future<void> signUpWithEmail({
+  Future<AuthResponse> signInWithEmail(String email, String password) async {
+    try {
+      final res = await _client.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
+      );
+      await upsertProfile();
+      return res;
+    } catch (e) {
+      throw AuthFailure(mapAuthError(e));
+    }
+  }
+
+  Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
     required String fullName,
   }) async {
-    await _client.auth.signUp(
-      email: email.trim(),
-      password: password,
-      data: {'full_name': fullName.trim()},
-    );
-    await upsertProfile(fullName: fullName.trim());
+    try {
+      final res = await _client.auth.signUp(
+        email: email.trim(),
+        password: password,
+        data: {'full_name': fullName.trim()},
+        emailRedirectTo: redirectUrl,
+      );
+      if (res.session != null) {
+        await upsertProfile(fullName: fullName.trim());
+      }
+      return res;
+    } catch (e) {
+      throw AuthFailure(mapAuthError(e));
+    }
   }
 
   Future<void> resetPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email.trim(), redirectTo: redirectUrl);
+    try {
+      await _client.auth.resetPasswordForEmail(
+        email.trim(),
+        redirectTo: redirectUrl,
+      );
+    } catch (e) {
+      throw AuthFailure(mapAuthError(e));
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _client.auth.updateUser(UserAttributes(password: newPassword));
+    } catch (e) {
+      throw AuthFailure(mapAuthError(e));
+    }
   }
 
   Future<void> signInWithGoogle() async {
-    await _client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: redirectUrl,
-      authScreenLaunchMode: LaunchMode.externalApplication,
-    );
+    try {
+      final ok = await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirectUrl,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      if (!ok) {
+        throw AuthFailure('Google orqali kirish bekor qilindi.');
+      }
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw AuthFailure(mapAuthError(e));
+    }
   }
 
   Future<void> signInWithFacebook() async {
-    await _client.auth.signInWithOAuth(
-      OAuthProvider.facebook,
-      redirectTo: redirectUrl,
-      authScreenLaunchMode: LaunchMode.externalApplication,
-    );
+    try {
+      final ok = await _client.auth.signInWithOAuth(
+        OAuthProvider.facebook,
+        redirectTo: redirectUrl,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      if (!ok) {
+        throw AuthFailure('Facebook orqali kirish bekor qilindi.');
+      }
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw AuthFailure(mapAuthError(e));
+    }
   }
 
   Future<void> signOut() async {
@@ -100,12 +166,13 @@ class AuthService {
 
   Future<String> uploadAvatar(Uint8List bytes, String fileExt) async {
     final user = currentUser;
-    if (user == null) throw Exception('Not signed in');
-    final path = '${user.id}/avatar.$fileExt';
+    if (user == null) throw AuthFailure('Avval tizimga kiring');
+    final ext = fileExt.toLowerCase().replaceAll('.', '');
+    final path = '${user.id}/avatar.$ext';
     await _client.storage.from('avatars').uploadBinary(
           path,
           bytes,
-          fileOptions: const FileOptions(upsert: true),
+          fileOptions: const FileOptions(upsert: true, contentType: 'image/$ext'),
         );
     final url = _client.storage.from('avatars').getPublicUrl(path);
     final withTs = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
@@ -120,8 +187,66 @@ class AuthService {
       await _client.from('profiles').delete().eq('id', user.id);
     } catch (_) {}
     try {
-      await _client.rpc('delete_own_account');
+      await _client.storage.from('avatars').remove([
+        '${user.id}/avatar.png',
+        '${user.id}/avatar.jpg',
+        '${user.id}/avatar.jpeg',
+        '${user.id}/avatar.webp',
+      ]);
     } catch (_) {}
+    try {
+      await _client.rpc('delete_own_account');
+    } catch (e) {
+      await _client.auth.signOut();
+      throw AuthFailure(
+        "Akkaunt sessiyasi yopildi. To'liq o'chirish uchun Supabase SQL (delete_own_account) ni ishga tushiring.",
+      );
+    }
     await _client.auth.signOut();
   }
+
+  static String mapAuthError(Object e) {
+    final raw = e.toString().toLowerCase();
+    if (e is AuthException) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains('invalid login credentials')) {
+        return "Email yoki parol noto'g'ri.";
+      }
+      if (msg.contains('email not confirmed')) {
+        return 'Avval emailingizni tasdiqlang (pochta qutingizni tekshiring).';
+      }
+      if (msg.contains('user already registered')) {
+        return "Bu email allaqachon ro'yxatdan o'tgan. Kirishga urinib ko'ring.";
+      }
+      if (msg.contains('password should be at least')) {
+        return "Parol kamida 6 ta belgidan iborat bo'lishi kerak.";
+      }
+      if (msg.contains('unsupported provider') ||
+          msg.contains('provider is not enabled') ||
+          msg.contains('validation failed')) {
+        return "Google/Facebook provider Supabase dashboardda yoqilmagan.";
+      }
+      if (msg.contains('rate limit') || msg.contains('over_email_send_rate')) {
+        return "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.";
+      }
+      return e.message;
+    }
+    if (raw.contains('unsupported provider') ||
+        raw.contains('provider is not enabled') ||
+        raw.contains('unable to exchange external code')) {
+      return "Google/Facebook provider Supabase dashboardda yoqilmagan yoki Client ID noto'g'ri.";
+    }
+    if (raw.contains('network') || raw.contains('socket') || raw.contains('failed host')) {
+      return "Internet yo'q yoki serverga ulanib bo'lmadi.";
+    }
+    return e.toString().replaceFirst('Exception: ', '');
+  }
+}
+
+class AuthFailure implements Exception {
+  final String message;
+  AuthFailure(this.message);
+
+  @override
+  String toString() => message;
 }
