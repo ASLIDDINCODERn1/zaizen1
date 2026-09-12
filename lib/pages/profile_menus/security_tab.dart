@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/login.dart';
 import 'package:zaizen/pages/profile_menus/app_lock.dart' hide AppColors;
 
@@ -38,6 +40,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<LocaleProvider>().strings;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -48,9 +51,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
           onPressed: () => Navigator.pop(context),
           child: const Icon(CupertinoIcons.chevron_back, color: AppColors.textPrimary),
         ),
-        title: const Text(
-          'Xavfsizlik',
-          style: TextStyle(
+        title: Text(
+          s.security,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -73,9 +76,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
               : ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
-                    const Text(
-                      'Qurilma himoyasi',
-                      style: TextStyle(
+                    Text(
+                      s.deviceProtection,
+                      style: const TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -87,7 +90,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         children: [
                           _ActionRow(
                             icon: CupertinoIcons.lock_shield_fill,
-                            label: _hasPin ? "PIN kodni o'zgartirish" : "PIN kod o'rnatish",
+                            label: _hasPin ? s.changePin : s.setPin,
                             onTap: () async {
                               await Navigator.push(
                                 context,
@@ -104,7 +107,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                             const _LineDivider(),
                             _ActionRow(
                               icon: CupertinoIcons.trash_fill,
-                              label: "PIN kodni o'chirish",
+                              label: s.deletePin,
                               danger: true,
                               onTap: _confirmRemovePin,
                             ),
@@ -114,9 +117,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     ),
                     const SizedBox(height: 22),
                     if (_isFingerprintSupported) ...[
-                      const Text(
-                        'Biometrik himoya',
-                        style: TextStyle(
+                      Text(
+                        s.biometricProtection,
+                        style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -143,9 +146,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Barmoq izi (Fingerprint)',
-                                      style: TextStyle(
+                                    Text(
+                                      s.fingerprintToggle,
+                                      style: const TextStyle(
                                         color: AppColors.textPrimary,
                                         fontSize: 14.5,
                                         fontWeight: FontWeight.w600,
@@ -153,9 +156,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      _hasPin
-                                          ? 'Dasturga tezkor kirish uchun'
-                                          : "Avval PIN kod o'rnating",
+                                      _hasPin ? s.fingerprintToggleDesc : s.fingerprintNeedPin,
                                       style: const TextStyle(
                                           color: AppColors.textMuted, fontSize: 12),
                                     ),
@@ -194,16 +195,16 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.border.withOpacity(0.5)),
                       ),
-                      child: const Row(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(CupertinoIcons.info_circle_fill,
+                          const Icon(CupertinoIcons.info_circle_fill,
                               color: AppColors.primary, size: 18),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              "PIN kod yoki barmoq izi o'rnatilgach, ilovadan chiqib qayta kirganingizda har safar xavfsizlik tekshiruvi amalga oshiriladi.",
-                              style: TextStyle(
+                              s.securityHint,
+                              style: const TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 12.5,
                                 height: 1.4,
@@ -221,21 +222,20 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   void _confirmRemovePin() {
+    final s = context.read<LocaleProvider>().strings;
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text("PIN kodni o'chirish"),
-        content: const Text(
-          "Haqiqatan ham PIN kod va barmoq izi xavfsizlik qulfini butunlay o'chirmoqchimisiz?",
-        ),
+        title: Text(s.deletePin),
+        content: Text(s.confirmDeletePin),
         actions: [
           CupertinoDialogAction(
-            child: const Text('Bekor qilish'),
+            child: Text(s.cancel),
             onPressed: () => Navigator.pop(ctx),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            child: const Text("O'chirish"),
+            child: Text(s.delete),
             onPressed: () async {
               await SecurityHelper.removePin();
               Navigator.pop(ctx);
