@@ -28,6 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
     return MaterialApp(
+      key: ValueKey(localeProvider.locale.languageCode),
       title: 'Zaizen App',
       locale: localeProvider.locale,
       supportedLocales: [
