@@ -89,7 +89,7 @@ create or replace function public.delete_own_account()
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, storage, auth
 as $$
 declare
   uid uuid := auth.uid();
@@ -97,6 +97,11 @@ begin
   if uid is null then
     raise exception 'Not authenticated';
   end if;
+
+  delete from storage.objects
+  where bucket_id = 'zaizen'
+    and split_part(name, '/', 1) = uid::text;
+
   delete from public.profiles where id = uid;
   delete from auth.users where id = uid;
 end;

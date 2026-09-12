@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zaizen/auth/password_rules.dart';
 
 class AuthService {
   AuthService._();
@@ -56,6 +57,9 @@ class AuthService {
   }
 
   Future<AuthResponse> signInWithEmail(String email, String password) async {
+    final emailErr = PasswordRules.emailError(email);
+    if (emailErr != null) throw AuthFailure(emailErr);
+    if (password.isEmpty) throw AuthFailure('Parol kiriting.');
     try {
       final res = await _client.auth.signInWithPassword(
         email: email.trim(),
@@ -73,6 +77,12 @@ class AuthService {
     required String password,
     required String fullName,
   }) async {
+    final nameErr = PasswordRules.nameError(fullName);
+    if (nameErr != null) throw AuthFailure(nameErr);
+    final emailErr = PasswordRules.emailError(email);
+    if (emailErr != null) throw AuthFailure(emailErr);
+    final passErr = PasswordRules.passwordError(password, email: email);
+    if (passErr != null) throw AuthFailure(passErr);
     try {
       final res = await _client.auth.signUp(
         email: email.trim(),
@@ -93,6 +103,8 @@ class AuthService {
   }
 
   Future<void> resetPassword(String email) async {
+    final emailErr = PasswordRules.emailError(email);
+    if (emailErr != null) throw AuthFailure(emailErr);
     try {
       await _client.auth.resetPasswordForEmail(
         email.trim(),
@@ -104,6 +116,8 @@ class AuthService {
   }
 
   Future<void> updatePassword(String newPassword) async {
+    final passErr = PasswordRules.passwordError(newPassword, email: email);
+    if (passErr != null) throw AuthFailure(passErr);
     try {
       await _client.auth.updateUser(UserAttributes(password: newPassword));
     } catch (e) {
@@ -210,8 +224,9 @@ class AuthService {
       if (msg.contains('user already registered')) {
         return "Bu email allaqachon ro'yxatdan o'tgan. Kirishga urinib ko'ring.";
       }
-      if (msg.contains('password should be at least')) {
-        return "Parol kamida 6 ta belgidan iborat bo'lishi kerak.";
+      if (msg.contains('password should be at least') ||
+          msg.contains('password is known to be weak')) {
+        return "Parol kamida 8 belgi, harf va raqamdan iborat bo'lsin.";
       }
       if (msg.contains('unsupported provider') ||
           msg.contains('provider is not enabled') ||

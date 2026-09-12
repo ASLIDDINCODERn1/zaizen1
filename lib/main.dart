@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,6 +10,7 @@ import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
 import 'package:zaizen/pages/onboarding.dart';
 import 'package:zaizen/pages/profile_menus/app_lock.dart';
+import 'package:zaizen/ui/status_bar_guard.dart';
 
 const _supabaseUrl = 'https://vazzsnxyqbumqstjgsln.supabase.co';
 const _supabaseAnonKey = 'sb_publishable_0gYD9sXBEp5N16haSniQew_6bsbiV3X';
@@ -27,18 +27,7 @@ Future<void> main() async {
     ),
   );
   AuthService.instance.startSessionListener();
-  await SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.manual,
-    overlays: const [SystemUiOverlay.bottom],
-  );
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF05070C),
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+  await StatusBarGuard.hide();
   runApp(
     MultiProvider(
       providers: [
@@ -46,7 +35,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => ProfileStore()),
       ],
-      child: const MyApp(),
+      child: const StatusBarGuard(child: MyApp()),
     ),
   );
 }
@@ -78,6 +67,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
+      builder: (context, child) {
+        StatusBarGuard.hide();
+        return child ?? const SizedBox.shrink();
+      },
       home: const ConnectivityGate(
         child: SplashScreen(
           nextScreen: AuthGate(),
