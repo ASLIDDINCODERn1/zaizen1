@@ -1,18 +1,69 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/profile_menus/language_screen.dart';
 import 'package:zaizen/pages/profile_menus/profile_sub.dart' hide LanguageScreen;
 import 'package:zaizen/pages/profile_menus/security_tab.dart';
 import 'login.dart' show AppColors;
 
-class ProfileTab extends StatelessWidget {
+class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
+
+  @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  bool _busy = false;
+
+  Future<void> _editName(BuildContext context) async {
+    final ctrl = TextEditingController(text: AuthService.instance.displayName);
+    final ok = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Ismni tahrirlash'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: CupertinoTextField(controller: ctrl),
+        ),
+        actions: [
+          CupertinoDialogAction(child: const Text('Bekor'), onPressed: () => Navigator.pop(ctx, false)),
+          CupertinoDialogAction(child: const Text('Saqlash'), onPressed: () => Navigator.pop(ctx, true)),
+        ],
+      ),
+    );
+    if (ok == true && ctrl.text.trim().isNotEmpty) {
+      await AuthService.instance.updateProfile(fullName: ctrl.text.trim());
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _editPhoto() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 75);
+    if (picked == null) return;
+    setState(() => _busy = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final ext = picked.name.contains('.') ? picked.name.split('.').last : 'jpg';
+      await AuthService.instance.uploadAvatar(bytes, ext);
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
+    final auth = AuthService.instance;
+    final avatar = auth.avatarUrl;
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
       physics: const BouncingScrollPhysics(),
@@ -20,39 +71,55 @@ class ProfileTab extends StatelessWidget {
         Center(
           child: Column(
             children: [
-              Container(
-                width: 92,
-                height: 92,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary, width: 2),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/avatar.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      CupertinoIcons.person_fill,
-                      color: AppColors.primary,
-                      size: 40,
+              GestureDetector(
+                onTap: _busy ? null : _editPhoto,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 92,
+                      height: 92,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary, width: 2),
+                      ),
+                      child: ClipOval(
+                        child: avatar != null
+                            ? Image.network(avatar, fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  CupertinoIcons.person_fill, color: AppColors.primary, size: 40),
+                              )
+                            : const Icon(CupertinoIcons.person_fill, color: AppColors.primary, size: 40),
+                      ),
                     ),
-                  ),
+                    const Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: CircleAvatar(
+                        radius: 12,
+                        backgroundColor: AppColors.primary,
+                        child: Icon(CupertinoIcons.camera_fill, size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Aziz Karimov',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
+              GestureDetector(
+                onTap: () => _editName(context),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      auth.displayName.isEmpty ? 'User' : auth.displayName,
+                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 19, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(CupertinoIcons.pencil, size: 16, color: AppColors.textMuted),
+                  ],
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'aziz.karimov@gmail.com',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13.5),
-              ),
+              Text(auth.email, style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5)),
             ],
           ),
         ),
@@ -60,60 +127,25 @@ class ProfileTab extends StatelessWidget {
         _CardWrapper(
           child: Column(
             children: [
-              _SettingsItem(
-                icon: CupertinoIcons.person_fill,
-                label: s.personalInfo,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (_) => const PersonalInfoScreen()),
-                  );
-                },
-              ),
+              _SettingsItem(icon: CupertinoIcons.person_fill, label: s.personalInfo, onTap: () {
+                Navigator.push(context, CupertinoPageRoute(builder: (_) => const PersonalInfoScreen()));
+              }),
               const _ItemDivider(),
-              _SettingsItem(
-                icon: CupertinoIcons.bell_fill,
-                label: s.notifications,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (_) => const NotificationsScreen()),
-                  );
-                },
-              ),
+              _SettingsItem(icon: CupertinoIcons.bell_fill, label: s.notifications, onTap: () {
+                Navigator.push(context, CupertinoPageRoute(builder: (_) => const NotificationsScreen()));
+              }),
               const _ItemDivider(),
-              _SettingsItem(
-                icon: CupertinoIcons.lock_fill,
-                label: s.security,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (_) => const SecurityScreen()),
-                  );
-                },
-              ),
+              _SettingsItem(icon: CupertinoIcons.lock_fill, label: s.security, onTap: () {
+                Navigator.push(context, CupertinoPageRoute(builder: (_) => const SecurityScreen()));
+              }),
               const _ItemDivider(),
-              _SettingsItem(
-                icon: CupertinoIcons.globe,
-                label: s.language,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (_) => const LanguageScreen()),
-                  );
-                },
-              ),
+              _SettingsItem(icon: CupertinoIcons.globe, label: s.language, onTap: () {
+                Navigator.push(context, CupertinoPageRoute(builder: (_) => const LanguageScreen()));
+              }),
               const _ItemDivider(),
-              _SettingsItem(
-                icon: CupertinoIcons.question_circle_fill,
-                label: s.helpCenter,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (_) => const HelpCenterScreen()),
-                  );
-                },
-              ),
+              _SettingsItem(icon: CupertinoIcons.question_circle_fill, label: s.helpCenter, onTap: () {
+                Navigator.push(context, CupertinoPageRoute(builder: (_) => const HelpCenterScreen()));
+              }),
             ],
           ),
         ),
@@ -124,6 +156,15 @@ class ProfileTab extends StatelessWidget {
             label: s.logout,
             danger: true,
             onTap: () => _showLogoutDialog(context, s),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _CardWrapper(
+          child: _SettingsItem(
+            icon: CupertinoIcons.trash_fill,
+            label: "Akkauntni o'chirish",
+            danger: true,
+            onTap: () => _showDeleteDialog(context),
           ),
         ),
       ],
@@ -137,15 +178,34 @@ class ProfileTab extends StatelessWidget {
         title: Text(s.logoutTitle),
         content: Text(s.logoutMessage),
         actions: [
-          CupertinoDialogAction(
-            child: Text(s.cancel),
-            onPressed: () => Navigator.pop(ctx),
-          ),
+          CupertinoDialogAction(child: Text(s.cancel), onPressed: () => Navigator.pop(ctx)),
           CupertinoDialogAction(
             isDestructiveAction: true,
             child: Text(s.logout),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              await AuthService.instance.signOut();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    showCupertinoDialog(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text("Akkauntni o'chirish"),
+        content: const Text("Barcha ma'lumotlaringiz o'chadi. Keyin yangi akkaunt ochishingiz mumkin."),
+        actions: [
+          CupertinoDialogAction(child: const Text('Bekor'), onPressed: () => Navigator.pop(ctx)),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text("O'chirish"),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await AuthService.instance.deleteAccount();
             },
           ),
         ],
@@ -157,7 +217,6 @@ class ProfileTab extends StatelessWidget {
 class _CardWrapper extends StatelessWidget {
   final Widget child;
   const _CardWrapper({required this.child});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -173,7 +232,6 @@ class _CardWrapper extends StatelessWidget {
 
 class _ItemDivider extends StatelessWidget {
   const _ItemDivider();
-
   @override
   Widget build(BuildContext context) {
     return const Divider(height: 1, color: AppColors.border, indent: 60);
@@ -185,13 +243,7 @@ class _SettingsItem extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool danger;
-
-  const _SettingsItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.danger = false,
-  });
+  const _SettingsItem({required this.icon, required this.label, required this.onTap, this.danger = false});
 
   @override
   Widget build(BuildContext context) {
@@ -207,25 +259,14 @@ class _SettingsItem extends StatelessWidget {
             Container(
               width: 34,
               height: 34,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
+              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
               child: Icon(icon, color: color, size: 17),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: danger ? color : AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.5,
-                ),
-              ),
+              child: Text(label, style: TextStyle(color: danger ? color : AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14.5)),
             ),
-            if (!danger)
-              const Icon(CupertinoIcons.chevron_right, color: AppColors.textMuted, size: 16),
+            if (!danger) const Icon(CupertinoIcons.chevron_right, color: AppColors.textMuted, size: 16),
           ],
         ),
       ),
