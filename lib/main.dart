@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zaizen/auth/auth_gate.dart';
+import 'package:zaizen/auth/auth_links.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/l10n/supported_languages.dart';
@@ -26,6 +27,7 @@ Future<void> main() async {
     ),
   );
   AuthService.instance.startSessionListener();
+  await AuthLinks.instance.start();
   await StatusBarGuard.hide();
   runApp(
     MultiProvider(
@@ -81,38 +83,8 @@ class MyApp extends StatelessWidget {
           ],
         );
       },
-      home: const AppBootstrap(),
+      home: const SplashScreen(nextScreen: AuthGate()),
       debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class AppBootstrap extends StatefulWidget {
-  const AppBootstrap({super.key});
-
-  @override
-  State<AppBootstrap> createState() => _AppBootstrapState();
-}
-
-class _AppBootstrapState extends State<AppBootstrap> {
-  bool _showSplash = true;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 2400), () {
-      if (mounted) setState(() => _showSplash = false);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const AuthGate(),
-        if (_showSplash) const SplashScreen(),
-      ],
     );
   }
 }
