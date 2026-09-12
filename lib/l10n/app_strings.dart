@@ -131,6 +131,43 @@ class AppStrings {
   String get pinSuccess => _t(uz: 'Muvaffaqiyatli!', ru: 'Успешно!', en: 'Success!', ja: '成功しました！');
   String get photoUploadFail => _t(uz: "Rasm yuklanmadi. Qayta urinib ko'ring.", ru: 'Не удалось загрузить фото. Попробуйте ещё раз.', en: 'Photo upload failed. Please try again.', ja: '写真のアップロードに失敗しました。');
 
+  String get authInvalidCredentials => _t(uz: "Email yoki parol noto'g'ri.", ru: 'Неверный email или пароль.', en: 'Incorrect email or password.', ja: 'メールまたはパスワードが正しくありません。');
+  String get authEmailNotConfirmed => _t(uz: 'Avval emailingizni tasdiqlang (pochta qutisini tekshiring).', ru: 'Сначала подтвердите email.', en: 'Please confirm your email first.', ja: '先にメールを確認してください。');
+  String get authAlreadyRegistered => _t(uz: "Bu email allaqachon ro'yxatdan o'tgan.", ru: 'Этот email уже зарегистрирован.', en: 'This email is already registered.', ja: 'このメールは既に登録されています。');
+  String get authWeakPassword => _t(uz: "Parol kamida 8 belgi, harf va raqamdan iborat bo'lsin.", ru: 'Пароль: минимум 8 символов, буква и цифра.', en: 'Password needs 8+ chars, a letter and a number.', ja: 'パスワードは8文字以上、文字と数字が必要です。');
+  String get authGoogleDisabled => _t(uz: "Google provider Supabase dashboardda yoqilmagan.", ru: 'Google провайдер не включён в Supabase.', en: 'Google sign-in is not enabled in Supabase.', ja: 'SupabaseでGoogleログインが有効ではありません。');
+  String get authRateLimit => _t(uz: "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.", ru: 'Слишком много попыток. Подождите немного.', en: 'Too many attempts. Please wait and try again.', ja: '試行が多すぎます。少し待って再試行してください。');
+  String get authNetwork => _t(uz: "Internet yo'q yoki serverga ulanib bo'lmadi.", ru: 'Нет сети или сервер недоступен.', en: 'No internet or the server is unreachable.', ja: 'インターネットがないか、サーバーに接続できません。');
+  String get authEnterPassword => _t(uz: 'Parol kiriting.', ru: 'Введите пароль.', en: 'Enter a password.', ja: 'パスワードを入力してください。');
+  String get authEnterEmail => _t(uz: 'Email kiriting.', ru: 'Введите email.', en: 'Enter an email.', ja: 'メールを入力してください。');
+  String get authBadEmail => _t(uz: "Email formati noto'g'ri.", ru: 'Неверный формат email.', en: 'Invalid email format.', ja: 'メール形式が正しくありません。');
+  String get authEnterName => _t(uz: 'Ismingizni kiriting.', ru: 'Введите имя.', en: 'Enter your name.', ja: '名前を入力してください。');
+  String get authNameShort => _t(uz: "Ism kamida 2 ta belgidan iborat bo'lsin.", ru: 'Имя должно быть не короче 2 символов.', en: 'Name must be at least 2 characters.', ja: '名前は2文字以上にしてください。');
+  String get authPasswordSpace => _t(uz: "Parolda bo'sh joy bo'lmasin.", ru: 'В пароле не должно быть пробелов.', en: 'Password cannot contain spaces.', ja: 'パスワードに空白を含めないでください。');
+  String get authPasswordShort => _t(uz: "Parol kamida 8 ta belgidan iborat bo'lsin.", ru: 'Пароль должен содержать минимум 8 символов.', en: 'Password must be at least 8 characters.', ja: 'パスワードは8文字以上にしてください。');
+  String get authPasswordLetter => _t(uz: "Parolda kamida 1 ta harf bo'lsin.", ru: 'В пароле нужна хотя бы 1 буква.', en: 'Password must include at least 1 letter.', ja: 'パスワードに文字を1つ以上入れてください。');
+  String get authPasswordDigit => _t(uz: "Parolda kamida 1 ta raqam bo'lsin.", ru: 'В пароле нужна хотя бы 1 цифра.', en: 'Password must include at least 1 number.', ja: 'パスワードに数字を1つ以上入れてください。');
+  String get authPasswordCommon => _t(uz: "Bu parol juda oddiy. Boshqasini tanlang.", ru: 'Этот пароль слишком простой.', en: 'That password is too common. Choose another.', ja: 'そのパスワードは簡単すぎます。');
+  String get authPasswordLikeEmail => _t(uz: "Parol emailingizga o'xshamasin.", ru: 'Пароль не должен быть похож на email.', en: 'Password should not match your email.', ja: 'パスワードをメールと同じにしないでください。');
+  String get authConfirmPassword => _t(uz: 'Parolni tasdiqlang.', ru: 'Подтвердите пароль.', en: 'Confirm the password.', ja: 'パスワードを確認してください。');
+  String get authPasswordMismatch => _t(uz: 'Parollar mos emas.', ru: 'Пароли не совпадают.', en: 'Passwords do not match.', ja: 'パスワードが一致しません。');
+  String get authNeedLogin => _t(uz: 'Avval tizimga kiring.', ru: 'Сначала войдите в аккаунт.', en: 'Please sign in first.', ja: '先にログインしてください。');
+  String get authUploadDenied => _t(uz: "Rasm yuklanmadi (storage ruxsati). supabase/setup.sql ni SQL Editorda ishga tushiring.", ru: 'Фото не загрузилось. Запустите supabase/setup.sql в SQL Editor.', en: 'Photo upload blocked. Run supabase/setup.sql in the SQL Editor.', ja: '写真をアップロードできません。SQL Editorで setup.sql を実行してください。');
+  String get authDeleteNeedSql => _t(uz: "Sessiya yopildi. Auth dan o'chirish uchun supabase/setup.sql ni ishga tushiring.", ru: 'Сессия закрыта. Чтобы удалить из Auth, запустите setup.sql.', en: 'Signed out. Run setup.sql to delete the Auth user.', ja: 'サインアウトしました。Auth削除には setup.sql を実行してください。');
+  String get authAccountCreated => _t(uz: "Hisob yaratildi. Emailni tasdiqlang, so'ng kiring.", ru: 'Аккаунт создан. Подтвердите email, затем войдите.', en: 'Account created. Confirm your email, then sign in.', ja: 'アカウントを作成しました。メール確認後にログインしてください。');
+  String get authGoogleCanceled => _t(uz: 'Google orqali kirish bekor qilindi.', ru: 'Вход через Google отменён.', en: 'Google sign-in was canceled.', ja: 'Googleログインがキャンセルされました。');
+  String get authResetSent => _t(uz: 'Zaizen nomidan tiklash havolasi yuborildi. Pochta qutisini tekshiring.', ru: 'Ссылка для сброса отправлена от имени Zaizen. Проверьте почту.', en: 'A Zaizen password reset link was sent. Check your inbox.', ja: 'Zaizenからパスワード再設定リンクを送信しました。メールを確認してください。');
+  String get resetPasswordTitle => _t(uz: 'Parolni tiklash', ru: 'Сброс пароля', en: 'Reset password', ja: 'パスワード再設定');
+  String get resetPasswordDesc => _t(uz: 'Emailingizni yozing. Parolni tiklash havolasini Zaizen nomidan yuboramiz.', ru: 'Введите email. Ссылку для сброса отправим от имени Zaizen.', en: 'Enter your email. We will send a Zaizen password reset link.', ja: 'メールを入力してください。Zaizenから再設定リンクを送ります。');
+  String get sendResetLink => _t(uz: 'Havola yuborish', ru: 'Отправить ссылку', en: 'Send link', ja: 'リンクを送信');
+  String get newPasswordTitle => _t(uz: 'Yangi parol', ru: 'Новый пароль', en: 'New password', ja: '新しいパスワード');
+  String get newPasswordRules => _t(uz: 'Kamida 8 belgi, 1 harf va 1 raqam. Oddiy parollar qabul qilinmaydi.', ru: 'Минимум 8 символов, 1 буква и 1 цифра. Простые пароли не принимаются.', en: 'At least 8 characters, 1 letter and 1 number. Common passwords are rejected.', ja: '8文字以上、文字と数字が必要です。簡単なパスワードは使えません。');
+  String get passwordHintShort => _t(uz: '8+ belgi, harf va raqam', ru: '8+ символов, буква и цифра', en: '8+ chars, letter and number', ja: '8文字以上、文字と数字');
+  String get passwordUpdated => _t(uz: 'Parol yangilandi. Endi shu parol bilan kiring.', ru: 'Пароль обновлён. Теперь войдите с новым паролем.', en: 'Password updated. Sign in with the new password.', ja: 'パスワードを更新しました。新しいパスワードでログインしてください。');
+  String get authPhotoTooLarge => _t(uz: "Rasm 5 MB dan oshmasin.", ru: 'Фото не должно быть больше 5 МБ.', en: 'Photo must be 5 MB or smaller.', ja: '写真は5MB以下にしてください。');
+  String get biometricReason => _t(uz: 'Kirish uchun ekrandagi barmoq izini bosing', ru: 'Нажмите датчик отпечатка, чтобы войти', en: 'Use your fingerprint to unlock', ja: '指紋でロックを解除してください');
+  String get pinGoingHome => _t(uz: "Asosiy sahifaga o'tilmoqda...", ru: 'Переход на главный экран...', en: 'Opening the home screen...', ja: 'ホーム画面を開いています...');
+
   String _t({required String uz, required String ru, required String en, required String ja}) {
     switch (languageCode) {
       case 'uz': return uz;
@@ -139,5 +176,16 @@ class AppStrings {
       case 'en': return en;
       default: return en;
     }
+  }
+}
+
+class LanguageScope {
+  LanguageScope._();
+  static String code = 'uz';
+  static AppStrings strings = AppStrings.uz;
+
+  static void apply(String languageCode) {
+    code = languageCode;
+    strings = AppStrings.fromCode(languageCode);
   }
 }
