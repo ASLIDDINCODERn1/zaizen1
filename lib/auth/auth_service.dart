@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zaizen/auth/password_rules.dart';
+import 'package:zaizen/l10n/app_strings.dart';
 
 class AuthService {
   AuthService._();
@@ -59,7 +60,7 @@ class AuthService {
   Future<AuthResponse> signInWithEmail(String email, String password) async {
     final emailErr = PasswordRules.emailError(email);
     if (emailErr != null) throw AuthFailure(emailErr);
-    if (password.isEmpty) throw AuthFailure('Parol kiriting.');
+    if (password.isEmpty) throw AuthFailure(LanguageScope.strings.authEnterPassword);
     try {
       final res = await _client.auth.signInWithPassword(
         email: email.trim(),
@@ -133,7 +134,7 @@ class AuthService {
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
       if (!ok) {
-        throw AuthFailure('Google orqali kirish bekor qilindi.');
+        throw AuthFailure(LanguageScope.strings.authGoogleCanceled);
       }
     } catch (e) {
       if (e is AuthFailure) rethrow;
@@ -169,10 +170,10 @@ class AuthService {
 
   Future<String> uploadAvatar(Uint8List bytes, String fileExt) async {
     final user = currentUser;
-    if (user == null) throw AuthFailure('Avval tizimga kiring');
-    if (bytes.isEmpty) throw AuthFailure("Rasm bo'sh. Boshqa rasm tanlang.");
+    if (user == null) throw AuthFailure(LanguageScope.strings.authNeedLogin);
+    if (bytes.isEmpty) throw AuthFailure(LanguageScope.strings.authUploadDenied);
     if (bytes.lengthInBytes > 5 * 1024 * 1024) {
-      throw AuthFailure("Rasm 5 MB dan oshmasin.");
+      throw AuthFailure(LanguageScope.strings.authPhotoTooLarge);
     }
     var ext = fileExt.toLowerCase().replaceAll('.', '').trim();
     if (ext == 'jpeg' || ext == 'heic' || ext == 'heif' || ext.isEmpty) ext = 'jpg';
@@ -205,9 +206,7 @@ class AuthService {
           raw.contains('rls') ||
           raw.contains('403') ||
           raw.contains('401')) {
-        throw AuthFailure(
-          "Rasm yuklanmadi (storage ruxsati). supabase/setup.sql ni SQL Editorda ishga tushiring.",
-        );
+        throw AuthFailure(LanguageScope.strings.authUploadDenied);
       }
       throw AuthFailure(mapAuthError(e));
     }
@@ -237,9 +236,7 @@ class AuthService {
       await _client.rpc('delete_own_account');
     } catch (e) {
       await _client.auth.signOut();
-      throw AuthFailure(
-        "Sessiya yopildi, lekin Auth dan o'chirish uchun supabase/setup.sql ni SQL Editorda ishga tushiring.",
-      );
+      throw AuthFailure(LanguageScope.strings.authDeleteNeedSql);
     }
     try {
       await _client.auth.signOut();
@@ -247,39 +244,41 @@ class AuthService {
   }
 
   static String mapAuthError(Object e) {
+    final s = LanguageScope.strings;
     final raw = e.toString().toLowerCase();
     if (e is AuthException) {
       final msg = e.message.toLowerCase();
-      if (msg.contains('invalid login credentials')) {
-        return "Email yoki parol noto'g'ri.";
-      }
-      if (msg.contains('email not confirmed')) {
-        return 'Avval emailingizni tasdiqlang (pochta qutingizni tekshiring).';
-      }
-      if (msg.contains('user already registered')) {
-        return "Bu email allaqachon ro'yxatdan o'tgan. Kirishga urinib ko'ring.";
-      }
+      if (msg.contains('invalid login credentials')) return s.authInvalidCredentials;
+      if (msg.contains('email not confirmed')) return s.authEmailNotConfirmed;
+      if (msg.contains('user already registered')) return s.authAlreadyRegistered;
       if (msg.contains('password should be at least') ||
-          msg.contains('password is known to be weak')) {
-        return "Parol kamida 8 belgi, harf va raqamdan iborat bo'lsin.";
+          msg.contains('password is known to be weak') ||
+          msg.contains('weak password')) {
+        return s.authWeakPassword;
       }
       if (msg.contains('unsupported provider') ||
           msg.contains('provider is not enabled') ||
           msg.contains('validation failed')) {
-        return "Google provider Supabase dashboardda yoqilmagan.";
+        return s.authGoogleDisabled;
       }
       if (msg.contains('rate limit') || msg.contains('over_email_send_rate')) {
-        return "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.";
+        return s.authRateLimit;
+      }
+      if (msg.contains('row-level security') || msg.contains('not allowed')) {
+        return s.authUploadDenied;
       }
       return e.message;
     }
     if (raw.contains('unsupported provider') ||
         raw.contains('provider is not enabled') ||
         raw.contains('unable to exchange external code')) {
-      return "Google provider Supabase dashboardda yoqilmagan yoki Client ID noto'g'ri.";
+      return s.authGoogleDisabled;
     }
     if (raw.contains('network') || raw.contains('socket') || raw.contains('failed host')) {
-      return "Internet yo'q yoki serverga ulanib bo'lmadi.";
+      return s.authNetwork;
+    }
+    if (raw.contains('row-level security') || raw.contains('unauthorized') || raw.contains('403')) {
+      return s.authUploadDenied;
     }
     return e.toString().replaceFirst('Exception: ', '');
   }
