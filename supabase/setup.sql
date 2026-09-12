@@ -1,4 +1,4 @@
--- Supabase SQL Editor da shu skriptni bir marta ishga tushiring.
+-- Supabase SQL Editor da shu skriptni to'liq ishga tushiring.
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -10,7 +10,6 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles add column if not exists created_at timestamptz default now();
-
 alter table public.profiles enable row level security;
 
 drop policy if exists "profiles read own" on public.profiles;
@@ -61,9 +60,18 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
-insert into storage.buckets (id, name, public)
-values ('zaizen', 'zaizen', true)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'zaizen',
+  'zaizen',
+  true,
+  5242880,
+  array['image/jpeg','image/jpg','image/png','image/webp','image/gif','image/heic','image/heif']
+)
+on conflict (id) do update
+  set public = true,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "zaizen public read" on storage.objects;
 create policy "zaizen public read"
@@ -73,23 +81,39 @@ create policy "zaizen public read"
 drop policy if exists "zaizen own write" on storage.objects;
 create policy "zaizen own write"
   on storage.objects for insert
-  with check (bucket_id = 'zaizen' and auth.uid()::text = (storage.foldername(name))[1]);
+  to authenticated
+  with check (
+    bucket_id = 'zaizen'
+    and split_part(name, '/', 1) = auth.uid()::text
+  );
 
 drop policy if exists "zaizen own update" on storage.objects;
 create policy "zaizen own update"
   on storage.objects for update
-  using (bucket_id = 'zaizen' and auth.uid()::text = (storage.foldername(name))[1]);
+  to authenticated
+  using (
+    bucket_id = 'zaizen'
+    and split_part(name, '/', 1) = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'zaizen'
+    and split_part(name, '/', 1) = auth.uid()::text
+  );
 
 drop policy if exists "zaizen own delete" on storage.objects;
 create policy "zaizen own delete"
   on storage.objects for delete
-  using (bucket_id = 'zaizen' and auth.uid()::text = (storage.foldername(name))[1]);
+  to authenticated
+  using (
+    bucket_id = 'zaizen'
+    and split_part(name, '/', 1) = auth.uid()::text
+  );
 
 create or replace function public.delete_own_account()
-returns void
+returns json
 language plpgsql
 security definer
-set search_path = public, storage, auth
+set search_path = public
 as $$
 declare
   uid uuid := auth.uid();
@@ -98,14 +122,22 @@ begin
     raise exception 'Not authenticated';
   end if;
 
-  delete from storage.objects
-  where bucket_id = 'zaizen'
-    and split_part(name, '/', 1) = uid::text;
+  begin
+    delete from storage.objects
+    where bucket_id = 'zaizen'
+      and split_part(name, '/', 1) = uid::text;
+  exception when others then
+    null;
+  end;
 
   delete from public.profiles where id = uid;
   delete from auth.users where id = uid;
+
+  return json_build_object('ok', true, 'id', uid);
 end;
 $$;
 
+alter function public.delete_own_account() owner to postgres;
 revoke all on function public.delete_own_account() from public;
+revoke all on function public.delete_own_account() from anon;
 grant execute on function public.delete_own_account() to authenticated;
