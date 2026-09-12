@@ -22,18 +22,19 @@ class _ProfileTabState extends State<ProfileTab> {
 
   Future<void> _editName(BuildContext context) async {
     final store = context.read<ProfileStore>();
+    final s = context.read<LocaleProvider>().strings;
     final ctrl = TextEditingController(text: store.name.isNotEmpty ? store.name : AuthService.instance.displayName);
     final ok = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Ismni tahrirlash'),
+        title: Text(s.editName),
         content: Padding(
           padding: const EdgeInsets.only(top: 10),
           child: CupertinoTextField(controller: ctrl),
         ),
         actions: [
-          CupertinoDialogAction(child: const Text('Bekor'), onPressed: () => Navigator.pop(ctx, false)),
-          CupertinoDialogAction(child: const Text('Saqlash'), onPressed: () => Navigator.pop(ctx, true)),
+          CupertinoDialogAction(child: Text(s.cancel), onPressed: () => Navigator.pop(ctx, false)),
+          CupertinoDialogAction(child: Text(s.save), onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
     );
@@ -44,7 +45,13 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Future<void> _editPhoto() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 75);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      requestFullMetadata: false,
+    );
     if (picked == null) return;
     setState(() => _busy = true);
     try {
@@ -168,9 +175,9 @@ class _ProfileTabState extends State<ProfileTab> {
         _CardWrapper(
           child: _SettingsItem(
             icon: CupertinoIcons.trash_fill,
-            label: "Akkauntni o'chirish",
+            label: s.deleteAccount,
             danger: true,
-            onTap: () => _showDeleteDialog(context),
+            onTap: () => _showDeleteDialog(context, s),
           ),
         ),
       ],
@@ -198,17 +205,17 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  void _showDeleteDialog(BuildContext context) {
+  void _showDeleteDialog(BuildContext context, dynamic s) {
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text("Akkauntni o'chirish"),
-        content: const Text("Barcha ma'lumotlaringiz o'chadi. Keyin yangi akkaunt ochishingiz mumkin."),
+        title: Text(s.deleteAccount),
+        content: Text(s.deleteAccountMessage),
         actions: [
-          CupertinoDialogAction(child: const Text('Bekor'), onPressed: () => Navigator.pop(ctx)),
+          CupertinoDialogAction(child: Text(s.cancel), onPressed: () => Navigator.pop(ctx)),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            child: const Text("O'chirish"),
+            child: Text(s.delete),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
