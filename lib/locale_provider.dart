@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zaizen/l10n/app_strings.dart';
 
-/// ─── TIL HOLATI VA SAQLASH ───────────────────────────────────────────────────
-/// Ilovani yopganda ham, qayta ishga tushirganda ham tanlangan til saqlanadi.
 class LocaleProvider extends ChangeNotifier {
   static const _key = 'app_language_code';
 
@@ -16,24 +14,28 @@ class LocaleProvider extends ChangeNotifier {
   bool get isLoaded => _isLoaded;
 
   LocaleProvider() {
+    LanguageScope.apply('uz');
     _loadSaved();
   }
 
   Future<void> _loadSaved() async {
     final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString(_key) ?? 'uz';
-    _locale = Locale(code);
-    _strings = AppStrings.fromCode(code);
+    _apply(code);
     _isLoaded = true;
-    notifyListeners(); // sahifa tayyor bo'lganda yangilanadi
+    notifyListeners();
+  }
+
+  void _apply(String languageCode) {
+    _locale = Locale(languageCode);
+    _strings = AppStrings.fromCode(languageCode);
+    LanguageScope.apply(languageCode);
   }
 
   Future<void> setLocale(String languageCode) async {
     if (_locale.languageCode == languageCode) return;
-    _locale = Locale(languageCode);
-    _strings = AppStrings.fromCode(languageCode);
+    _apply(languageCode);
     notifyListeners();
-    // SharedPreferences'ga saqlash (ilova yopilganda ham saqlanadi)
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, languageCode);
   }
