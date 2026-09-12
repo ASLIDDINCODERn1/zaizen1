@@ -33,8 +33,6 @@ create policy "profiles delete own"
   on public.profiles for delete
   using (auth.uid() = id);
 
--- Yangi user yaratilishi bilan profil avtomatik yoziladi
--- (email tasdiqlash yoqilgan bo'lsa ham session bo'lmasa ham).
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -64,28 +62,28 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
+values ('zaizen', 'zaizen', true)
 on conflict (id) do nothing;
 
-drop policy if exists "avatar public read" on storage.objects;
-create policy "avatar public read"
+drop policy if exists "zaizen public read" on storage.objects;
+create policy "zaizen public read"
   on storage.objects for select
-  using (bucket_id = 'avatars');
+  using (bucket_id = 'zaizen');
 
-drop policy if exists "avatar own write" on storage.objects;
-create policy "avatar own write"
+drop policy if exists "zaizen own write" on storage.objects;
+create policy "zaizen own write"
   on storage.objects for insert
-  with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+  with check (bucket_id = 'zaizen' and auth.uid()::text = (storage.foldername(name))[1]);
 
-drop policy if exists "avatar own update" on storage.objects;
-create policy "avatar own update"
+drop policy if exists "zaizen own update" on storage.objects;
+create policy "zaizen own update"
   on storage.objects for update
-  using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+  using (bucket_id = 'zaizen' and auth.uid()::text = (storage.foldername(name))[1]);
 
-drop policy if exists "avatar own delete" on storage.objects;
-create policy "avatar own delete"
+drop policy if exists "zaizen own delete" on storage.objects;
+create policy "zaizen own delete"
   on storage.objects for delete
-  using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+  using (bucket_id = 'zaizen' and auth.uid()::text = (storage.foldername(name))[1]);
 
 create or replace function public.delete_own_account()
 returns void
