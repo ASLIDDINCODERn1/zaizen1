@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zaizen/pages/login.dart';
-import 'package:zaizen/pages/profile_menus/app_lock.dart';
+import 'package:zaizen/pages/profile_menus/app_lock.dart' hide AppColors;
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -59,12 +59,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
         centerTitle: true,
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [AppColors.bgTop, AppColors.bgBottom],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            stops: [0.0, 0.6],
+            stops: const [0.0, 0.6],
           ),
         ),
         child: SafeArea(
