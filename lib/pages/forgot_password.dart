@@ -26,9 +26,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _loading = true;
       _message = null;
     });
+    if (_email.text.trim().isEmpty) {
+      setState(() {
+        _loading = false;
+        _message = 'Email kiriting.';
+      });
+      return;
+    }
     try {
       await AuthService.instance.resetPassword(_email.text);
-      setState(() => _message = 'Parolni tiklash havolasi emailga yuborildi.');
+      setState(() => _message = 'Parolni tiklash havolasi emailga yuborildi. Pochta qutisini tekshiring.');
     } catch (e) {
       setState(() => _message = e.toString());
     } finally {

@@ -26,28 +26,54 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _submit() async {
+    final name = _name.text.trim();
+    final email = _email.text.trim();
+    final pass = _pass.text;
+    if (name.isEmpty || email.isEmpty || pass.isEmpty) {
+      setState(() => _error = "Ism, email va parol to'ldirilishi shart.");
+      return;
+    }
+    if (pass.length < 6) {
+      setState(() => _error = "Parol kamida 6 ta belgidan iborat bo'lsin.");
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      await AuthService.instance.signUpWithEmail(
-        email: _email.text,
-        password: _pass.text,
-        fullName: _name.text,
+      final res = await AuthService.instance.signUpWithEmail(
+        email: email,
+        password: pass,
+        fullName: name,
       );
       if (!mounted) return;
-      Navigator.pop(context);
+      if (res.session != null) {
+        Navigator.pop(context);
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Hisob yaratildi. Emailni tasdiqlang yoki kiring.'),
+          content: Text(
+            "Hisob yaratildi. Emailni tasdiqlang, keyin kiring. Tezkor test uchun Supabase Email Confirm ni o'chiring.",
+          ),
           backgroundColor: AppColors.primary,
+          duration: Duration(seconds: 6),
         ),
       );
+      Navigator.pop(context);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _google() async {
+    try {
+      await AuthService.instance.signInWithGoogle();
+    } catch (e) {
+      setState(() => _error = e.toString());
     }
   }
 
@@ -84,6 +110,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: _loading
                 ? const CupertinoActivityIndicator(color: Colors.white)
                 : const Text("Ro'yxatdan o'tish", style: TextStyle(color: Colors.white)),
+          ),
+          const SizedBox(height: 14),
+          CupertinoButton(
+            color: const Color(0xFFEA4335),
+            borderRadius: BorderRadius.circular(14),
+            onPressed: _loading ? null : _google,
+            child: const Text('Google bilan davom etish', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

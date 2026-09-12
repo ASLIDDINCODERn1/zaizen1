@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zaizen/auth/auth_gate.dart';
+import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
@@ -19,8 +20,11 @@ Future<void> main() async {
     anonKey: _supabaseAnonKey,
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
+      autoRefreshToken: true,
+      detectSessionInUri: true,
     ),
   );
+  AuthService.instance.startSessionListener();
   runApp(
     MultiProvider(
       providers: [
@@ -50,6 +54,13 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      localeResolutionCallback: (locale, supported) {
+        if (locale == null) return const Locale('uz');
+        for (final s in supported) {
+          if (s.languageCode == locale.languageCode) return s;
+        }
+        return const Locale('uz');
+      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
