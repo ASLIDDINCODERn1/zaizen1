@@ -102,6 +102,35 @@ class AppStrings {
   String get activityGroup => _t(uz: 'Guruh muhokamasi', ru: 'Групповое обсуждение', en: 'Group discussion', ja: 'グループディスカッション');
   String get activityWeekly => _t(uz: 'Haftalik yutuq', ru: 'Недельное достижение', en: 'Weekly achievement', ja: '週間の成果');
 
+  String get confirmPassword => _t(uz: 'Parolni tasdiqlang', ru: 'Подтвердите пароль', en: 'Confirm password', ja: 'パスワードを確認');
+  String get nameLabel => _t(uz: 'Ism', ru: 'Имя', en: 'Name', ja: '名前');
+  String get orWord => _t(uz: 'yoki', ru: 'или', en: 'or', ja: 'または');
+  String get googleContinue => _t(uz: 'Google orqali davom etish', ru: 'Продолжить с Google', en: 'Continue with Google', ja: 'Googleで続行');
+  String get createAccount => _t(uz: "Yangi hisob oching", ru: 'Создайте аккаунт', en: 'Create an account', ja: 'アカウントを作成');
+  String get signInHint => _t(uz: 'Hisobingizga kiring', ru: 'Войдите в аккаунт', en: 'Sign in to your account', ja: 'アカウントにログイン');
+  String get dataSafe => _t(uz: "Ma'lumotlaringiz xavfsiz saqlanadi", ru: 'Ваши данные в безопасности', en: 'Your data is stored securely', ja: 'データは安全に保存されます');
+  String get continueNeedLogin => _t(uz: 'Davom etish uchun hisobingizga kiring', ru: 'Чтобы продолжить, войдите в аккаунт', en: 'Sign in to continue', ja: '続けるにはログインしてください');
+  String get deleteAccount => _t(uz: "Akkauntni o'chirish", ru: 'Удалить аккаунт', en: 'Delete account', ja: 'アカウントを削除');
+  String get deleteAccountMessage => _t(
+    uz: "Barcha ma'lumotlaringiz Supabase Auth va bazadan o'chadi. Keyin yangi akkaunt ochishingiz mumkin.",
+    ru: 'Все данные будут удалены из Supabase Auth и базы. Потом можно создать новый аккаунт.',
+    en: 'All your data will be removed from Supabase Auth and the database. You can create a new account later.',
+    ja: 'すべてのデータがSupabase Authとデータベースから削除されます。後で新しいアカウントを作成できます。',
+  );
+  String get delete => _t(uz: "O'chirish", ru: 'Удалить', en: 'Delete', ja: '削除');
+  String get editName => _t(uz: 'Ismni tahrirlash', ru: 'Изменить имя', en: 'Edit name', ja: '名前を編集');
+  String get pinUnlockTitle => _t(uz: 'Xavfsizlik PIN kodi', ru: 'PIN-код безопасности', en: 'Security PIN', ja: 'セキュリティPIN');
+  String get pinCreateTitle => _t(uz: '1/2: Yangi PIN kiriting', ru: '1/2: Введите новый PIN', en: '1/2: Enter a new PIN', ja: '1/2: 新しいPINを入力');
+  String get pinConfirmTitle => _t(uz: '2/2: PIN kodni tasdiqlang', ru: '2/2: Подтвердите PIN', en: '2/2: Confirm PIN', ja: '2/2: PINを確認');
+  String get pinUnlockSub => _t(uz: 'Dasturga kirish uchun PIN kodni tering', ru: 'Введите PIN, чтобы открыть приложение', en: 'Enter your PIN to unlock the app', ja: 'アプリを開くにはPINを入力');
+  String get pinCreateSub => _t(uz: "4 xonali yangi PIN kod o'ylab toping", ru: 'Придумайте 4-значный PIN', en: 'Choose a 4-digit PIN', ja: '4桁のPINを決めてください');
+  String get pinConfirmSub => _t(uz: 'Tasdiqlash uchun xuddi shu kodni qayta tering', ru: 'Для подтверждения введите тот же код', en: 'Enter the same PIN again', ja: '確認のため同じPINを再入力');
+  String get pinWrong => _t(uz: "PIN kod noto'g'ri!", ru: 'Неверный PIN-код!', en: 'Incorrect PIN!', ja: 'PINが正しくありません');
+  String get pinMismatch => _t(uz: 'Kodlar mos kelmadi! Qaytadan kiriting', ru: 'Коды не совпадают. Повторите ввод', en: 'PINs do not match. Try again', ja: 'PINが一致しません。やり直してください');
+  String get pinSaved => _t(uz: 'Muvaffaqiyatli saqlandi!', ru: 'Успешно сохранено!', en: 'Saved successfully!', ja: '保存しました！');
+  String get pinSuccess => _t(uz: 'Muvaffaqiyatli!', ru: 'Успешно!', en: 'Success!', ja: '成功しました！');
+  String get photoUploadFail => _t(uz: "Rasm yuklanmadi. Qayta urinib ko'ring.", ru: 'Не удалось загрузить фото. Попробуйте ещё раз.', en: 'Photo upload failed. Please try again.', ja: '写真のアップロードに失敗しました。');
+
   String _t({required String uz, required String ru, required String en, required String ja}) {
     switch (languageCode) {
       case 'uz': return uz;
