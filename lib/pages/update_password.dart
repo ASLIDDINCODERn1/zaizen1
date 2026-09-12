@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/password_rules.dart';
+import 'package:zaizen/l10n/l10n_scope.dart';
 import 'package:zaizen/pages/login.dart';
 
 class UpdatePasswordScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
       if (!mounted) return;
       setState(() {
         _ok = true;
-        _message = 'Parol yangilandi. Endi shu parol bilan kiring.';
+        _message = L.read(context).passwordUpdated;
       });
     } catch (e) {
       setState(() {
@@ -76,27 +77,28 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = L.of(context);
     final score = PasswordRules.strength(_pass.text);
     return Scaffold(
       backgroundColor: AppColors.bgBottom,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Yangi parol', style: TextStyle(color: Colors.white)),
+        title: Text(s.newPasswordTitle, style: const TextStyle(color: Colors.white)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text(
-            'Kamida 8 belgi, 1 harf va 1 raqam. Oddiy parollar qabul qilinmaydi.',
-            style: TextStyle(color: AppColors.textMuted),
+          Text(
+            s.newPasswordRules,
+            style: const TextStyle(color: AppColors.textMuted),
           ),
           const SizedBox(height: 20),
-          _field('Yangi parol', _pass),
+          _field(s.newPasswordTitle, _pass),
           const SizedBox(height: 10),
           Text(
             _pass.text.isEmpty
-                ? '8+ belgi, harf va raqam'
+                ? s.passwordHintShort
                 : PasswordRules.strengthLabel(score),
             style: TextStyle(
               color: score >= 3
@@ -109,7 +111,7 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          _field('Parolni tasdiqlang', _confirm),
+          _field(s.confirmPassword, _confirm),
           if (_message != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -126,7 +128,7 @@ class _UpdatePasswordScreenState extends State<UpdatePasswordScreen> {
             onPressed: _loading ? null : _save,
             child: _loading
                 ? const CupertinoActivityIndicator(color: Colors.white)
-                : const Text('Saqlash', style: TextStyle(color: Colors.white)),
+                : Text(s.save, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
