@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:zaizen/auth/auth_service.dart';
+import 'package:zaizen/pages/forgot_password.dart';
 
 /// ─── Color Palette — Blue & Black ────────────────────────────────
 class AppColors {
@@ -17,11 +19,11 @@ class AppColors {
   static const textSecondary = Color(0xFF9AA3B2);
   static const textMuted = Color(0xFF6B7280);
   static const google = Color(0xFFEA4335);
-  static const facebook = Color(0xFF3B82F6);
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool startOnSignUp;
+  const LoginScreen({super.key, this.startOnSignUp = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -29,45 +31,108 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
+  late bool _isSignUp;
   bool _obscure = true;
-  bool _remember = false;
+  bool _obscure2 = true;
+  bool _loading = false;
+  bool _googleLoading = false;
 
-  final FocusNode _emailFocus = FocusNode();
-  final FocusNode _passFocus = FocusNode();
-  bool _emailFocused = false;
-  bool _passFocused = false;
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
 
   late final AnimationController _entranceController;
 
   @override
   void initState() {
     super.initState();
-
+    _isSignUp = widget.startOnSignUp;
     _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 800),
     )..forward();
-
-    _emailFocus.addListener(() {
-      setState(() => _emailFocused = _emailFocus.hasFocus);
-    });
-    _passFocus.addListener(() {
-      setState(() => _passFocused = _passFocus.hasFocus);
-    });
   }
 
   @override
   void dispose() {
     _entranceController.dispose();
-    _emailFocus.dispose();
-    _passFocus.dispose();
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
-  void _handleGoogle() => HapticFeedback.selectionClick();
-  void _handleFacebook() => HapticFeedback.selectionClick();
-  void _handleGuest() => HapticFeedback.selectionClick();
-  void _handleSignIn() => HapticFeedback.mediumImpact();
+  void _toast(String msg, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? const Color(0xFFEF4444) : AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _handleGoogle() async {
+    HapticFeedback.selectionClick();
+    setState(() => _googleLoading = true);
+    try {
+      await AuthService.instance.signInWithGoogle();
+    } catch (e) {
+      _toast(e.toString(), error: true);
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
+  }
+
+  Future<void> _handleSubmit() async {
+    HapticFeedback.mediumImpact();
+    final email = _emailCtrl.text.trim();
+    final pass = _passCtrl.text;
+    if (email.isEmpty || pass.isEmpty) {
+      _toast('Email va parol kiriting', error: true);
+      return;
+    }
+    if (_isSignUp) {
+      final name = _nameCtrl.text.trim();
+      if (name.isEmpty) {
+        _toast('Ismingizni kiriting', error: true);
+        return;
+      }
+      if (pass.length < 6) {
+        _toast("Parol kamida 6 ta belgidan iborat bo'lsin", error: true);
+        return;
+      }
+      if (pass != _confirmCtrl.text) {
+        _toast('Parollar mos emas', error: true);
+        return;
+      }
+    }
+
+    setState(() => _loading = true);
+    try {
+      if (_isSignUp) {
+        final res = await AuthService.instance.signUpWithEmail(
+          email: email,
+          password: pass,
+          fullName: _nameCtrl.text.trim(),
+        );
+        if (!mounted) return;
+        if (res.session == null) {
+          _toast("Hisob yaratildi. Emailni tasdiqlang, so'ng kiring.");
+          setState(() => _isSignUp = false);
+        }
+      } else {
+        await AuthService.instance.signInWithEmail(email, pass);
+      }
+    } catch (e) {
+      _toast(e.toString(), error: true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   Widget _staggered(Widget child, {required double start, double end = 1.0}) {
     final curved = CurvedAnimation(
@@ -81,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen>
         return Opacity(
           opacity: curved.value.clamp(0.0, 1.0),
           child: Transform.translate(
-            offset: Offset(0, (1 - curved.value) * 18),
+            offset: Offset(0, (1 - curved.value) * 16),
             child: child,
           ),
         );
@@ -91,335 +156,241 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: Stack(
           children: [
-            /// 1. Deep navy-to-black background
-            Container(
-              decoration: const BoxDecoration(
+            const DecoratedBox(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.bgTop, AppColors.bgBottom],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: [0.0, 0.6],
                 ),
               ),
+              child: SizedBox.expand(),
             ),
-
-            /// 2. Soft blue halo behind the logo
             Align(
-              alignment: const Alignment(0, -0.72),
+              alignment: const Alignment(0, -0.86),
               child: Container(
-                width: 260,
-                height: 260,
+                width: 280,
+                height: 280,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.primary.withOpacity(0.28),
-                      AppColors.primary.withOpacity(0.0),
+                      AppColors.primary.withOpacity(0.32),
+                      AppColors.primary.withOpacity(0),
                     ],
                   ),
                 ),
               ),
             ),
-
-            /// 3. Main content
             SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(22, 12, 22, 24 + bottom),
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
                       children: [
-                        _CircleBtn(icon: CupertinoIcons.back, onTap: () {}),
-                        _CircleBtn(icon: CupertinoIcons.refresh, onTap: () {}),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 26),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 8),
-
-                          /// Logo — unchanged asset, just placed on the new bg
-                          _staggered(
-                            start: 0.0,
-                            end: 0.5,
-                            Hero(
-                              tag: "app_logo",
-                              child: Container(
-                                width: 108,
-                                height: 108,
+                        _staggered(
+                          start: 0,
+                          end: 0.45,
+                          Column(
+                            children: [
+                              Container(
+                                width: 78,
+                                height: 78,
+                                padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.06),
+                                  borderRadius: BorderRadius.circular(22),
                                   border: Border.all(
                                     color: Colors.white.withOpacity(0.08),
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.35),
-                                      blurRadius: 36,
-                                      spreadRadius: 2,
+                                ),
+                                child: Image.asset(
+                                  'assets/logo.png',
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.bolt_rounded,
+                                    color: AppColors.primary,
+                                    size: 36,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'ZAIZEN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 3,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _isSignUp
+                                    ? "Yangi hisob oching"
+                                    : 'Hisobingizga kiring',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        _staggered(
+                          start: 0.12,
+                          end: 0.7,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xCC0E1420),
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  children: [
+                                    _ModeSwitch(
+                                      isSignUp: _isSignUp,
+                                      onChanged: (v) => setState(() => _isSignUp = v),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    AnimatedSize(
+                                      duration: const Duration(milliseconds: 240),
+                                      curve: Curves.easeOutCubic,
+                                      child: Column(
+                                        children: [
+                                          if (_isSignUp) ...[
+                                            _Field(
+                                              label: 'Ism',
+                                              hint: 'Asliddin',
+                                              controller: _nameCtrl,
+                                              icon: CupertinoIcons.person,
+                                            ),
+                                            const SizedBox(height: 14),
+                                          ],
+                                          _Field(
+                                            label: 'Email',
+                                            hint: 'you@email.com',
+                                            controller: _emailCtrl,
+                                            keyboardType: TextInputType.emailAddress,
+                                            icon: CupertinoIcons.mail,
+                                          ),
+                                          const SizedBox(height: 14),
+                                          _Field(
+                                            label: 'Parol',
+                                            hint: '••••••••',
+                                            controller: _passCtrl,
+                                            obscure: _obscure,
+                                            icon: CupertinoIcons.lock,
+                                            suffix: _Eye(
+                                              obscure: _obscure,
+                                              onTap: () => setState(() => _obscure = !_obscure),
+                                            ),
+                                          ),
+                                          if (_isSignUp) ...[
+                                            const SizedBox(height: 14),
+                                            _Field(
+                                              label: 'Parolni tasdiqlang',
+                                              hint: '••••••••',
+                                              controller: _confirmCtrl,
+                                              obscure: _obscure2,
+                                              icon: CupertinoIcons.lock_shield,
+                                              suffix: _Eye(
+                                                obscure: _obscure2,
+                                                onTap: () => setState(() => _obscure2 = !_obscure2),
+                                              ),
+                                            ),
+                                          ],
+                                          if (!_isSignUp) ...[
+                                            const SizedBox(height: 8),
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: CupertinoButton(
+                                                padding: EdgeInsets.zero,
+                                                minSize: 0,
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute(
+                                                      builder: (_) => const ForgotPasswordScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                                child: const Text(
+                                                  'Parolni unutdingizmi?',
+                                                  style: TextStyle(
+                                                    color: AppColors.primary,
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                    _PrimaryButton(
+                                      label: _isSignUp ? "Ro'yxatdan o'tish" : 'Kirish',
+                                      loading: _loading,
+                                      onTap: _loading ? () {} : _handleSubmit,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Row(
+                                      children: [
+                                        Expanded(child: Divider(color: AppColors.border)),
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 10),
+                                          child: Text(
+                                            'yoki',
+                                            style: TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 12.5,
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(child: Divider(color: AppColors.border)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _GoogleButton(
+                                      loading: _googleLoading,
+                                      onTap: _googleLoading ? () {} : _handleGoogle,
                                     ),
                                   ],
                                 ),
-                                child: ClipOval(
-                                  child: Image.asset(
-                                    'assets/logo.png',
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      color: AppColors.surface,
-                                      child: const Icon(
-                                        CupertinoIcons.airplane,
-                                        color: AppColors.primary,
-                                        size: 40,
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ),
                             ),
                           ),
-
-                          const SizedBox(height: 24),
-
-                          _staggered(
-                            start: 0.05,
-                            end: 0.55,
-                            const Text(
-                              'Xush kelibsiz!',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          _isSignUp
+                              ? "Ma'lumotlaringiz xavfsiz saqlanadi"
+                              : 'Davom etish uchun hisobingizga kiring',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12.5,
                           ),
-                          const SizedBox(height: 8),
-                          _staggered(
-                            start: 0.1,
-                            end: 0.6,
-                            const Text(
-                              'Hisobingizga kiring va davom eting',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          /// Email field
-                          _staggered(
-                            start: 0.15,
-                            end: 0.65,
-                            _LabeledField(
-                              label: 'Email manzil',
-                              hint: 'example@gmail.com',
-                              keyboardType: TextInputType.emailAddress,
-                              focusNode: _emailFocus,
-                              focused: _emailFocused,
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          /// Password field
-                          _staggered(
-                            start: 0.2,
-                            end: 0.7,
-                            _LabeledField(
-                              label: 'Parol',
-                              hint: '••••••••',
-                              obscure: _obscure,
-                              focusNode: _passFocus,
-                              focused: _passFocused,
-                              suffix: CupertinoButton(
-                                padding: EdgeInsets.zero,
-                                minSize: 0,
-                                onPressed: () =>
-                                    setState(() => _obscure = !_obscure),
-                                child: Icon(
-                                  _obscure
-                                      ? CupertinoIcons.eye_slash
-                                      : CupertinoIcons.eye,
-                                  color: AppColors.textMuted,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          /// Remember me + Forgot password
-                          _staggered(
-                            start: 0.25,
-                            end: 0.72,
-                            Row(
-                              children: [
-                                _Checkbox(
-                                  value: _remember,
-                                  onChanged: (v) =>
-                                      setState(() => _remember = v),
-                                ),
-                                const SizedBox(width: 10),
-                                const Text(
-                                  'Meni eslab qol',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const Spacer(),
-                                CupertinoButton(
-                                  padding: EdgeInsets.zero,
-                                  minSize: 0,
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Parolni unutdingizmi?',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 26),
-
-                          /// Sign in button
-                          _staggered(
-                            start: 0.3,
-                            end: 0.78,
-                            _PrimaryButton(
-                              label: 'Kirish',
-                              onTap: _handleSignIn,
-                            ),
-                          ),
-
-                          const SizedBox(height: 26),
-
-                          _staggered(
-                            start: 0.36,
-                            end: 0.82,
-                            const Text(
-                              'Yoki davom eting',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 13.5,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          /// Social buttons — outlined pills
-                          _staggered(
-                            start: 0.4,
-                            end: 0.86,
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _SocialOutlineButton(
-                                    icon: Icons.g_mobiledata_rounded,
-                                    iconColor: AppColors.google,
-                                    label: 'Google',
-                                    onTap: _handleGoogle,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _SocialOutlineButton(
-                                    icon: Icons.facebook_rounded,
-                                    iconColor: AppColors.facebook,
-                                    label: 'Facebook',
-                                    onTap: _handleFacebook,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          _staggered(
-                            start: 0.44,
-                            end: 0.9,
-                            _SocialOutlineButton(
-                              icon: CupertinoIcons.person_solid,
-                              iconColor: Colors.grey.shade300,
-                              label: 'Mehmon sifatida davom etish',
-                              onTap: _handleGuest,
-                            ),
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          _staggered(
-                            start: 0.5,
-                            end: 0.95,
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  "Hisobingiz yo'qmi? ",
-                                  style: TextStyle(
-                                    color: AppColors.textMuted,
-                                    fontSize: 14.5,
-                                  ),
-                                ),
-                                CupertinoButton(
-                                  padding: EdgeInsets.zero,
-                                  minSize: 0,
-                                  onPressed: () {},
-                                  child: const Text(
-                                    "Ro'yxatdan o'tish",
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14.5,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          /// Home-indicator style bar, matching reference
-                          Container(
-                            width: 90,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ],
@@ -429,50 +400,76 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
-/// ─── Circle icon button (top bar) ────────────────────────────────
-class _CircleBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _CircleBtn({required this.icon, required this.onTap});
+class _ModeSwitch extends StatelessWidget {
+  final bool isSignUp;
+  final ValueChanged<bool> onChanged;
+  const _ModeSwitch({required this.isSignUp, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      minSize: 0,
-      onPressed: onTap,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0F18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          _chip('Kirish', !isSignUp, () => onChanged(false)),
+          _chip("Ro'yxat", isSignUp, () => onChanged(true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, bool active, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: active
+                ? const LinearGradient(
+                    colors: [AppColors.primaryDark, AppColors.primary],
+                  )
+                : null,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
         ),
-        child: Icon(icon, color: Colors.white, size: 19),
       ),
     );
   }
 }
 
-/// ─── Labeled input field (label above, placeholder inside) ──────
-class _LabeledField extends StatelessWidget {
+class _Field extends StatelessWidget {
   final String label;
   final String hint;
-  final Widget? suffix;
+  final TextEditingController controller;
+  final IconData icon;
   final bool obscure;
   final TextInputType? keyboardType;
-  final FocusNode? focusNode;
-  final bool focused;
+  final Widget? suffix;
 
-  const _LabeledField({
+  const _Field({
     required this.label,
     required this.hint,
-    this.suffix,
+    required this.controller,
+    required this.icon,
     this.obscure = false,
     this.keyboardType,
-    this.focusNode,
-    this.focused = false,
+    this.suffix,
   });
 
   @override
@@ -480,57 +477,36 @@ class _LabeledField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RichText(
-          text: TextSpan(
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-            children: [
-              TextSpan(text: label),
-              const TextSpan(
-                text: ' *',
-                style: TextStyle(color: AppColors.primary),
-              ),
-            ],
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: focused ? AppColors.surfaceFocused : AppColors.surface,
-            border: Border.all(
-              color: focused ? AppColors.borderFocused : AppColors.border,
-              width: focused ? 1.4 : 1,
+        const SizedBox(height: 7),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          keyboardType: keyboardType,
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+          cursorColor: AppColors.primary,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+            prefixIcon: Icon(icon, color: AppColors.textMuted, size: 18),
+            suffixIcon: suffix,
+            filled: true,
+            fillColor: AppColors.surface,
+            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
-            boxShadow: focused
-                ? [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.25),
-                      blurRadius: 14,
-                      spreadRadius: 0,
-                    ),
-                  ]
-                : [],
-          ),
-          child: TextField(
-            focusNode: focusNode,
-            obscureText: obscure,
-            keyboardType: keyboardType,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-            cursorColor: AppColors.primary,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle:
-                  const TextStyle(color: AppColors.textMuted, fontSize: 14.5),
-              suffixIcon: suffix,
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.borderFocused, width: 1.4),
             ),
           ),
         ),
@@ -539,160 +515,113 @@ class _LabeledField extends StatelessWidget {
   }
 }
 
-/// ─── Simple checkbox to match reference style ────────────────────
-class _Checkbox extends StatelessWidget {
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  const _Checkbox({required this.value, required this.onChanged});
+class _Eye extends StatelessWidget {
+  final bool obscure;
+  final VoidCallback onTap;
+  const _Eye({required this.obscure, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(5),
-          color: value ? AppColors.primary : Colors.transparent,
-          border: Border.all(
-            color: value ? AppColors.primary : AppColors.border,
-            width: 1.4,
-          ),
-        ),
-        child: value
-            ? const Icon(CupertinoIcons.check_mark, color: Colors.white, size: 13)
-            : null,
+    return IconButton(
+      onPressed: onTap,
+      icon: Icon(
+        obscure ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+        color: AppColors.textMuted,
+        size: 18,
       ),
     );
   }
 }
 
-/// ─── Primary blue pill button ────────────────────────────────
-class _PrimaryButton extends StatefulWidget {
+class _PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const _PrimaryButton({required this.label, required this.onTap});
-
-  @override
-  State<_PrimaryButton> createState() => _PrimaryButtonState();
-}
-
-class _PrimaryButtonState extends State<_PrimaryButton> {
-  bool _pressed = false;
+  final bool loading;
+  const _PrimaryButton({
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        child: Container(
-          width: double.infinity,
-          height: 54,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(27),
-            gradient: const LinearGradient(
-              colors: [AppColors.primaryDark, AppColors.primary],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(_pressed ? 0.25 : 0.45),
-                blurRadius: _pressed ? 10 : 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+      onTap: loading ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [AppColors.primaryDark, AppColors.primary],
           ),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(CupertinoIcons.bolt_fill, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                widget.label,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.35),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: loading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+              )
+            : Text(
+                label,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
                 ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
 }
 
-/// ─── Outlined pill social button ────────────────────────────────
-class _SocialOutlineButton extends StatefulWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
+class _GoogleButton extends StatelessWidget {
   final VoidCallback onTap;
-
-  const _SocialOutlineButton({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  State<_SocialOutlineButton> createState() => _SocialOutlineButtonState();
-}
-
-class _SocialOutlineButtonState extends State<_SocialOutlineButton> {
-  bool _down = false;
+  final bool loading;
+  const _GoogleButton({required this.onTap, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _down = true),
-      onTapCancel: () => setState(() => _down = false),
-      onTapUp: (_) => setState(() => _down = false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _down ? 0.96 : 1.0,
-        duration: const Duration(milliseconds: 110),
-        child: Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(25),
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.icon, color: widget.iconColor, size: 22),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  widget.label,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
+      onTap: loading ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        height: 50,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.border),
         ),
+        alignment: Alignment.center,
+        child: loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.g_mobiledata_rounded, color: AppColors.google, size: 28),
+                  SizedBox(width: 6),
+                  Text(
+                    'Google orqali davom etish',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.5,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
