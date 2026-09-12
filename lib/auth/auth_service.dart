@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -129,42 +128,32 @@ class AuthService {
 
   Future<void> signInWithGoogle() async {
     try {
-      final launched = await _client.auth.signInWithOAuth(
+      var launched = await _client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirectUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
+        authScreenLaunchMode: LaunchMode.inAppBrowserView,
         queryParams: const {
           'access_type': 'offline',
           'prompt': 'select_account',
         },
       );
       if (!launched) {
+        launched = await _client.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: redirectUrl,
+          authScreenLaunchMode: LaunchMode.externalApplication,
+          queryParams: const {
+            'access_type': 'offline',
+            'prompt': 'select_account',
+          },
+        );
+      }
+      if (!launched && session == null) {
         throw AuthFailure(LanguageScope.strings.authGoogleCanceled);
       }
-      await _waitForSession();
     } catch (e) {
       if (e is AuthFailure) rethrow;
       throw AuthFailure(mapAuthError(e));
-    }
-  }
-
-  Future<void> _waitForSession() async {
-    if (session != null) return;
-    final done = Completer<void>();
-    late final StreamSubscription sub;
-    sub = _client.auth.onAuthStateChange.listen((data) {
-      if (data.session != null && !done.isCompleted) {
-        done.complete();
-      }
-    });
-    try {
-      await done.future.timeout(const Duration(seconds: 90));
-    } on TimeoutException {
-      if (session == null) {
-        throw AuthFailure(LanguageScope.strings.authGoogleCanceled);
-      }
-    } finally {
-      await sub.cancel();
     }
   }
 
