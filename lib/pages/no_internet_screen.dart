@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/login.dart' show AppColors;
 
-/// ─── INTERNET HOLATI BOSHQARUVI ──────────────────────────────────────────────
 class ConnectivityProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _isOnline = true;
   bool _isReady = false;
@@ -18,7 +17,9 @@ class ConnectivityProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get reconnectEpoch => _reconnectEpoch;
   ConnectivityResult get connectionType => _type;
 
+  final Connectivity _connectivity = Connectivity();
   StreamSubscription<List<ConnectivityResult>>? _sub;
+  Timer? _poll;
 
   ConnectivityProvider() {
     WidgetsBinding.instance.addObserver(this);
@@ -27,7 +28,12 @@ class ConnectivityProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _init() async {
     await refresh();
-    _sub = Connectivity().onConnectivityChanged.listen(_apply);
+    _sub = _connectivity.onConnectivityChanged.listen(
+      _apply,
+      onError: (_) => refresh(),
+    );
+    _poll?.cancel();
+    _poll = Timer.periodic(const Duration(seconds: 1), (_) => refresh());
   }
 
   @override
@@ -38,36 +44,46 @@ class ConnectivityProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> refresh() async {
-    final result = await Connectivity().checkConnectivity();
-    _apply(result);
+    try {
+      final result = await _connectivity.checkConnectivity();
+      _apply(result);
+    } catch (_) {
+      _apply(const [ConnectivityResult.none]);
+    }
   }
 
   void _apply(List<ConnectivityResult> results) {
-    final hasWifi = results.contains(ConnectivityResult.wifi);
-    final hasMobile = results.contains(ConnectivityResult.mobile);
-    final hasEthernet = results.contains(ConnectivityResult.ethernet);
-    final online = hasWifi || hasMobile || hasEthernet;
-    final type = hasWifi
+    final online = results.any((r) =>
+        r == ConnectivityResult.wifi ||
+        r == ConnectivityResult.mobile ||
+        r == ConnectivityResult.ethernet ||
+        r == ConnectivityResult.vpn ||
+        r == ConnectivityResult.other);
+    final type = results.contains(ConnectivityResult.wifi)
         ? ConnectivityResult.wifi
-        : hasMobile
+        : results.contains(ConnectivityResult.mobile)
             ? ConnectivityResult.mobile
-            : hasEthernet
+            : results.contains(ConnectivityResult.ethernet)
                 ? ConnectivityResult.ethernet
-                : ConnectivityResult.none;
+                : results.contains(ConnectivityResult.vpn)
+                    ? ConnectivityResult.vpn
+                    : ConnectivityResult.none;
 
     final cameOnline = _isReady && !_isOnline && online;
     final changed = online != _isOnline || type != _type || !_isReady;
+    if (!changed && !cameOnline) return;
     _isOnline = online;
     _type = type;
     _isReady = true;
     if (cameOnline) _reconnectEpoch++;
-    if (changed || cameOnline) notifyListeners();
+    notifyListeners();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _sub?.cancel();
+    _poll?.cancel();
     super.dispose();
   }
 }
