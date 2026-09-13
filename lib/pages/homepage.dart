@@ -6,8 +6,8 @@ import 'package:zaizen/auth/profile_store.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/notifications_inbox.dart';
 import 'package:zaizen/pages/profile.dart';
-
-import 'login.dart' show AppColors;
+import 'package:zaizen/pages/settings.dart';
+import 'package:zaizen/ui/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,24 +23,27 @@ class _HomeScreenState extends State<HomeScreen> {
     _HomeTab(),
     _LeaderboardTab(),
     ProfileTab(),
+    SettingsTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final c = ZColors.of(context);
+    final dark = context.watch<ThemeProvider>().isDark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
         extendBody: true,
         body: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [AppColors.bgTop, AppColors.bgBottom],
+              colors: [c.bgTop, c.bgBottom],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              stops: [0.0, 0.6],
+              stops: const [0.0, 0.6],
             ),
           ),
           child: SafeArea(
@@ -66,29 +69,37 @@ class _FloatingNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
+    final c = ZColors.of(context);
+    final code = context.watch<LocaleProvider>().locale.languageCode;
+    final settingsLabel = switch (code) {
+      'ru' => 'Настройки',
+      'en' => 'Settings',
+      'ja' => '設定',
+      _ => 'Sozlamalar',
+    };
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 22),
+      padding: EdgeInsets.fromLTRB(PageGutters.navSide(context), 0, PageGutters.navSide(context), 16),
       child: Container(
-        height: 68,
+        height: 64,
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: AppColors.border),
+          color: c.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: c.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.35),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _NavButton(icon: CupertinoIcons.house_fill, label: s.navHome, active: currentIndex == 0, onTap: () => onTap(0)),
-            _NavButton(icon: CupertinoIcons.chart_bar, label: s.navRating, active: currentIndex == 1, onTap: () => onTap(1)),
+            _NavButton(icon: CupertinoIcons.chart_bar_alt_fill, label: s.navRating, active: currentIndex == 1, onTap: () => onTap(1)),
             _NavButton(icon: CupertinoIcons.person_fill, label: s.navProfile, active: currentIndex == 2, onTap: () => onTap(2)),
+            _NavButton(icon: CupertinoIcons.gear_alt_fill, label: settingsLabel, active: currentIndex == 3, onTap: () => onTap(3)),
           ],
         ),
       ),
@@ -105,6 +116,7 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZColors.of(context);
     return Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -112,17 +124,27 @@ class _NavButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
           decoration: BoxDecoration(
-            color: active ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(18),
+            color: active ? c.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 22, color: active ? Colors.white : AppColors.textMuted),
-              const SizedBox(height: 3),
-              Text(label, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: active ? Colors.white : AppColors.textMuted)),
+              Icon(icon, size: 18, color: active ? Colors.white : c.textMuted),
+              const SizedBox(height: 2),
+              FittedBox(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                    color: active ? Colors.white : c.textMuted,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -138,12 +160,13 @@ class _SmoothCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZColors.of(context);
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
+        color: c.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.border),
       ),
       child: child,
     );
@@ -158,38 +181,41 @@ class _HomeTab extends StatelessWidget {
     final s = context.watch<LocaleProvider>().strings;
     final profile = context.watch<ProfileStore>();
     final avatar = profile.avatarUrl;
+    final c = ZColors.of(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(22, 28, 22, 110),
+      padding: PageGutters.of(context),
       physics: const BouncingScrollPhysics(),
       children: [
         Row(
           children: [
             Container(
-              width: 50,
-              height: 50,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 1.6),
+                border: Border.all(color: c.primary, width: 1.6),
               ),
               child: ClipOval(
                 child: avatar != null && avatar.isNotEmpty
                     ? Image.network(
                         avatar,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(CupertinoIcons.person_fill, color: AppColors.primary),
+                        errorBuilder: (_, __, ___) => Icon(CupertinoIcons.person_fill, color: c.primary),
                       )
-                    : const Icon(CupertinoIcons.person_fill, color: AppColors.primary),
+                    : Icon(CupertinoIcons.person_fill, color: c.primary),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.welcome, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                  Text(s.welcome, style: TextStyle(color: c.textMuted, fontSize: 13)),
                   Text(
                     profile.name.isEmpty ? 'User' : profile.name,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -204,18 +230,18 @@ class _HomeTab extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: _StatCard(icon: CupertinoIcons.star_fill, value: '1,248', label: s.score, color: AppColors.primary)),
-            const SizedBox(width: 12),
+            Expanded(child: _StatCard(icon: CupertinoIcons.star_fill, value: '1,248', label: s.score, color: c.primary)),
+            const SizedBox(width: 10),
             Expanded(child: _StatCard(icon: CupertinoIcons.flame_fill, value: '12', label: s.streak, color: const Color(0xFFEA580C))),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(child: _StatCard(icon: CupertinoIcons.rosette, value: '#7', label: s.rank, color: const Color(0xFFEAB308))),
           ],
         ),
-        const SizedBox(height: 26),
-        Text(s.todayGoal, style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 22),
+        Text(s.todayGoal, style: TextStyle(color: c.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         _SmoothCard(
           child: Column(
@@ -226,17 +252,17 @@ class _HomeTab extends StatelessWidget {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(CupertinoIcons.checkmark_seal_fill, color: AppColors.primary),
+                    decoration: BoxDecoration(color: c.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
+                    child: Icon(CupertinoIcons.checkmark_seal_fill, color: c.primary),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.finishLessons, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 15)),
+                        Text(s.finishLessons, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 15)),
                         const SizedBox(height: 2),
-                        Text(s.lessonsProgress, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                        Text(s.lessonsProgress, style: TextStyle(color: c.textMuted, fontSize: 12.5)),
                       ],
                     ),
                   ),
@@ -245,18 +271,18 @@ class _HomeTab extends StatelessWidget {
               const SizedBox(height: 14),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: const LinearProgressIndicator(
+                child: LinearProgressIndicator(
                   value: 0.66,
                   minHeight: 8,
-                  backgroundColor: AppColors.border,
-                  valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                  backgroundColor: c.border,
+                  valueColor: AlwaysStoppedAnimation(c.primary),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 26),
-        Text(s.recentActivity, style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 22),
+        Text(s.recentActivity, style: TextStyle(color: c.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         _ActivityTile(icon: CupertinoIcons.book_fill, title: s.activityLesson, subtitle: s.hoursAgo, trailing: '+120'),
         const SizedBox(height: 10),
@@ -275,6 +301,7 @@ class _IconCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZColors.of(context);
     return CupertinoButton(
       padding: EdgeInsets.zero,
       minSize: 0,
@@ -283,11 +310,11 @@ class _IconCircle extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: c.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
-        child: Icon(icon, color: AppColors.primary, size: 19),
+        child: Icon(icon, color: c.primary, size: 19),
       ),
     );
   }
@@ -302,15 +329,18 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZColors.of(context);
     return _SmoothCard(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 22),
+          Icon(icon, color: color, size: 20),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
+          FittedBox(
+            child: Text(value, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
+          ),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+          Text(label, style: TextStyle(color: c.textMuted, fontSize: 11)),
         ],
       ),
     );
@@ -326,6 +356,7 @@ class _ActivityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZColors.of(context);
     return _SmoothCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
@@ -333,21 +364,21 @@ class _ActivityTile extends StatelessWidget {
           Container(
             width: 42,
             height: 42,
-            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(13)),
-            child: Icon(icon, color: AppColors.primary, size: 19),
+            decoration: BoxDecoration(color: c.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(13)),
+            child: Icon(icon, color: c.primary, size: 19),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14.5)),
+                Text(title, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 14.5)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                Text(subtitle, style: TextStyle(color: c.textMuted, fontSize: 12)),
               ],
             ),
           ),
-          Text(trailing, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+          Text(trailing, style: TextStyle(color: c.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
         ],
       ),
     );
@@ -375,7 +406,7 @@ class _LeaderboardTab extends StatelessWidget {
       case 3:
         return const Color(0xFFCD7F32);
       default:
-        return AppColors.textMuted;
+        return const Color(0xFF6B7280);
     }
   }
 
@@ -383,13 +414,14 @@ class _LeaderboardTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
     final me = context.watch<ProfileStore>().name;
+    final c = ZColors.of(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(22, 8, 22, 110),
+      padding: PageGutters.of(context),
       physics: const BouncingScrollPhysics(),
       children: [
-        Text(s.leaderboardTitle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text(s.leaderboardTitle, style: TextStyle(color: c.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Text(s.leaderboardSub, style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5)),
+        Text(s.leaderboardSub, style: TextStyle(color: c.textMuted, fontSize: 13.5)),
         const SizedBox(height: 18),
         for (final u in _users) ...[
           _SmoothCard(
@@ -401,17 +433,18 @@ class _LeaderboardTab extends StatelessWidget {
                   child: Text('#${u['rank']}', style: TextStyle(color: _rankColor(u['rank'] as int), fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
                 const SizedBox(width: 8),
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 19,
-                  backgroundColor: AppColors.border,
-                  child: Icon(CupertinoIcons.person_fill, color: AppColors.textMuted, size: 18),
+                  backgroundColor: c.border,
+                  child: Icon(CupertinoIcons.person_fill, color: c.textMuted, size: 18),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     (u['isMe'] == true && me.isNotEmpty) ? me : u['name'] as String,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: (u['isMe'] == true) ? AppColors.primary : AppColors.textPrimary,
+                      color: (u['isMe'] == true) ? c.primary : c.textPrimary,
                       fontWeight: FontWeight.w600,
                       fontSize: 14.5,
                     ),
@@ -419,7 +452,7 @@ class _LeaderboardTab extends StatelessWidget {
                 ),
                 if ((u['rank'] as int) <= 3) Icon(CupertinoIcons.rosette, color: _rankColor(u['rank'] as int), size: 18),
                 const SizedBox(width: 6),
-                Text('${u['score']}', style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13.5)),
+                Text('${u['score']}', style: TextStyle(color: c.textSecondary, fontWeight: FontWeight.w600, fontSize: 13.5)),
               ],
             ),
           ),
