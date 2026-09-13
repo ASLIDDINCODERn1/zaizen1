@@ -12,7 +12,13 @@ class AppLanguage {
     required this.flag,
     required this.country,
   });
+
+  bool get isUnlocked => kUnlockedLanguageCodes.contains(code);
 }
+
+const Set<String> kUnlockedLanguageCodes = {'uz', 'ru', 'en', 'ja'};
+
+bool isLanguageUnlocked(String code) => kUnlockedLanguageCodes.contains(code);
 
 const List<AppLanguage> kSupportedLanguages = [
   AppLanguage(code: 'uz', name: "O'zbekcha", nativeName: "O'zbek tili", flag: '🇺🇿', country: "O'zbekiston"),
@@ -34,10 +40,10 @@ const List<AppLanguage> kSupportedLanguages = [
   AppLanguage(code: 'th', name: 'ไทย', nativeName: 'ภาษาไทย', flag: '🇹🇭', country: 'ไทย'),
   AppLanguage(code: 'vi', name: 'Tiếng Việt', nativeName: 'Tiếng Việt', flag: '🇻🇳', country: 'Việt Nam'),
   AppLanguage(code: 'kk', name: 'Қазақша', nativeName: 'Қазақ тілі', flag: '🇰🇿', country: 'Қазақстан'),
-  AppLanguage(code: 'ky', name: 'Кыргызча', nativeName: 'Кыргыз тили', flag: '🇰🇬', country: 'Кыргызстан'),
+  AppLanguage(code: 'ky', name: 'Кыргызча', nativeName: 'Кыргыз тили', flag: '🇰🇾', country: 'Кыргызстан'),
   AppLanguage(code: 'tg', name: 'Тоҷикӣ', nativeName: 'Забони тоҷикӣ', flag: '🇹🇯', country: 'Тоҷикистон'),
   AppLanguage(code: 'tk', name: 'Türkmençe', nativeName: 'Türkmen dili', flag: '🇹🇲', country: 'Türkmenistan'),
-  AppLanguage(code: 'az', name: 'Azərbaycan', nativeName: 'Azərbaycan dili', flag: '🇦🇿', country: 'Azərbaycan'),
+  AppLanguage(code: 'az', name: 'Azərbaycan', nativeName: 'Azərbaycan dili', flag: '🇿🇦', country: 'Azərbaycan'),
   AppLanguage(code: 'uk', name: 'Українська', nativeName: 'Українська мова', flag: '🇺🇦', country: 'Україна'),
   AppLanguage(code: 'pl', name: 'Polski', nativeName: 'Polski', flag: '🇵🇱', country: 'Polska'),
   AppLanguage(code: 'nl', name: 'Nederlands', nativeName: 'Nederlands', flag: '🇳🇱', country: 'Nederland'),
@@ -64,11 +70,19 @@ const List<AppLanguage> kSupportedLanguages = [
 
 List<AppLanguage> languagesMatching(String query) {
   final q = query.trim().toLowerCase();
-  if (q.isEmpty) return kSupportedLanguages;
-  return kSupportedLanguages.where((l) {
-    return l.code.contains(q) ||
-        l.name.toLowerCase().contains(q) ||
-        l.nativeName.toLowerCase().contains(q) ||
-        l.country.toLowerCase().contains(q);
-  }).toList();
+  final list = q.isEmpty
+      ? kSupportedLanguages
+      : kSupportedLanguages.where((l) {
+          return l.code.contains(q) ||
+              l.name.toLowerCase().contains(q) ||
+              l.nativeName.toLowerCase().contains(q) ||
+              l.country.toLowerCase().contains(q);
+        }).toList();
+  list.sort((a, b) {
+    final au = a.isUnlocked ? 0 : 1;
+    final bu = b.isUnlocked ? 0 : 1;
+    if (au != bu) return au.compareTo(bu);
+    return 0;
+  });
+  return list;
 }
