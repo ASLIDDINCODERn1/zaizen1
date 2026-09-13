@@ -10,6 +10,7 @@ import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
 import 'package:zaizen/pages/onboarding.dart';
+import 'package:zaizen/ui/app_theme.dart';
 import 'package:zaizen/ui/status_bar_guard.dart';
 
 const _supabaseUrl = 'https://vazzsnxyqbumqstjgsln.supabase.co';
@@ -33,6 +34,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => ProfileStore()),
       ],
@@ -47,6 +49,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
+    final theme = context.watch<ThemeProvider>();
     final net = context.watch<ConnectivityProvider>();
     return MaterialApp(
       title: 'Zaizen App',
@@ -66,7 +69,19 @@ class MyApp extends StatelessWidget {
         }
         return const Locale('uz');
       },
+      themeMode: theme.mode,
       theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF3B82F6),
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF3F6FB),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF3B82F6),
           brightness: Brightness.dark,
