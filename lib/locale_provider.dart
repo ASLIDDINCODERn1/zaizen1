@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zaizen/l10n/app_strings.dart';
+import 'package:zaizen/l10n/supported_languages.dart';
 
 class LocaleProvider extends ChangeNotifier {
   static const _key = 'app_language_code';
@@ -20,19 +21,22 @@ class LocaleProvider extends ChangeNotifier {
 
   Future<void> _loadSaved() async {
     final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString(_key) ?? 'uz';
+    var code = prefs.getString(_key) ?? 'uz';
+    if (!isLanguageUnlocked(code)) code = 'uz';
     _apply(code);
     _isLoaded = true;
     notifyListeners();
   }
 
   void _apply(String languageCode) {
-    _locale = Locale(languageCode);
-    _strings = AppStrings.fromCode(languageCode);
-    LanguageScope.apply(languageCode);
+    final code = isLanguageUnlocked(languageCode) ? languageCode : 'uz';
+    _locale = Locale(code);
+    _strings = AppStrings.fromCode(code);
+    LanguageScope.apply(code);
   }
 
   Future<void> setLocale(String languageCode) async {
+    if (!isLanguageUnlocked(languageCode)) return;
     if (_locale.languageCode == languageCode) return;
     _apply(languageCode);
     notifyListeners();
