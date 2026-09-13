@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
@@ -35,9 +36,7 @@ class ZColors {
   const ZColors(this.isDark);
 
   static ZColors of(BuildContext context) {
-    final dark = context.findAncestorWidgetOfExactType<_ThemeScope>()?.isDark ??
-        true;
-    return ZColors(dark);
+    return ZColors(context.watch<ThemeProvider>().isDark);
   }
 
   Color get bgTop => isDark ? const Color(0xFF0D1526) : const Color(0xFFF3F6FB);
@@ -49,25 +48,6 @@ class ZColors {
   Color get textMuted => isDark ? const Color(0xFF6B7280) : const Color(0xFF64748B);
   Color get primary => const Color(0xFF3B82F6);
   Color get danger => const Color(0xFFEF4444);
-}
-
-class ThemeScope extends StatelessWidget {
-  final bool isDark;
-  final Widget child;
-  const ThemeScope({super.key, required this.isDark, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return _ThemeScope(isDark: isDark, child: child);
-  }
-}
-
-class _ThemeScope extends InheritedWidget {
-  final bool isDark;
-  const _ThemeScope({required this.isDark, required super.child});
-
-  @override
-  bool updateShouldNotify(_ThemeScope old) => isDark != old.isDark;
 }
 
 class PageGutters {
