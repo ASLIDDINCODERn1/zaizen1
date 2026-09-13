@@ -21,5 +21,4 @@ const Map<String, Map<String, String>> kI18nUi = {
 
 const Map<String, Map<String, String>> kI18n = {
   ...kI18nCore,
-  ...kI18nUi,
 };

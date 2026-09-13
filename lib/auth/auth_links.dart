@@ -7,7 +7,6 @@ class AuthLinks {
   AuthLinks._();
   static final AuthLinks instance = AuthLinks._();
 
-  StreamSubscription<Uri>? _sub;
   bool _started = false;
 
   Future<void> start() async {
@@ -18,7 +17,6 @@ class AuthLinks {
       final initial = await links.getInitialLink();
       if (initial != null) await consume(initial);
     } catch (_) {}
-    _sub = links.uriLinkStream.listen(consume);
   }
 
   Future<void> consume(Uri uri) async {
