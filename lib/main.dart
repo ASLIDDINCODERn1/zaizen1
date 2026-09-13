@@ -6,6 +6,7 @@ import 'package:zaizen/auth/auth_gate.dart';
 import 'package:zaizen/auth/auth_links.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/profile_store.dart';
+import 'package:zaizen/l10n/i18n_table.dart';
 import 'package:zaizen/l10n/supported_languages.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/no_internet_screen.dart';
@@ -51,6 +52,7 @@ class MyApp extends StatelessWidget {
     final localeProvider = context.watch<LocaleProvider>();
     final theme = context.watch<ThemeProvider>();
     final net = context.watch<ConnectivityProvider>();
+    final rtl = kRtlLanguages.contains(localeProvider.locale.languageCode);
     return MaterialApp(
       title: 'Zaizen App',
       locale: localeProvider.locale,
@@ -73,27 +75,25 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3B82F6),
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3B82F6), brightness: Brightness.light),
         scaffoldBackgroundColor: const Color(0xFFF3F6FB),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3B82F6),
-          brightness: Brightness.dark,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3B82F6), brightness: Brightness.dark),
         scaffoldBackgroundColor: const Color(0xFF0A3D91),
       ),
       builder: (context, child) {
         StatusBarGuard.hide();
+        final wrapped = Directionality(
+          textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+          child: child ?? const SizedBox.shrink(),
+        );
         return Stack(
           fit: StackFit.expand,
           children: [
-            child ?? const SizedBox.shrink(),
+            wrapped,
             if (net.isReady && !net.isOnline) const NoInternetScreen(),
           ],
         );
