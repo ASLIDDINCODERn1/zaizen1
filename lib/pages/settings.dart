@@ -56,8 +56,8 @@ class SettingsTab extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         theme.isDark
-                            ? _t(context, uz: 'Qorong\'u rejim', ru: 'Тёмная тема', en: 'Dark mode', ja: 'ダークモード')
-                            : _t(context, uz: 'Yorug\' rejim', ru: 'Светлая тема', en: 'Light mode', ja: 'ライトモード'),
+                            ? _t(context, uz: "Qorong'u rejim", ru: 'Тёмная тема', en: 'Dark mode', ja: 'ダークモード')
+                            : _t(context, uz: "Yorug' rejim", ru: 'Светлая тема', en: 'Light mode', ja: 'ライトモード'),
                         style: TextStyle(color: c.textMuted, fontSize: 12),
                       ),
                     ],
@@ -236,7 +236,7 @@ class _RowItem extends StatelessWidget {
     final color = danger ? c.danger : c.primary;
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
+      minSize: 0,
       onPressed: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
