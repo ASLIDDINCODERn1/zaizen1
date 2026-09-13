@@ -31,17 +31,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
   }
 
   Future<void> _selectLanguage(AppLanguage lang) async {
-    if (!lang.isUnlocked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Bu til hali ishga tushmagan'),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
-      return;
-    }
+    if (!lang.isUnlocked) return;
     if (lang.code == _selectedCode) return;
     setState(() => _selectedCode = lang.code);
     await Provider.of<LocaleProvider>(context, listen: false).setLocale(lang.code);
@@ -118,12 +108,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
                       _FlagLangTile(
                         flag: langs[i].flag,
                         name: langs[i].name,
-                        nativeName: langs[i].isUnlocked
-                            ? '${langs[i].nativeName}  •  ${langs[i].country}'
-                            : 'Tez orada',
+                        nativeName: '${langs[i].nativeName}  •  ${langs[i].country}',
                         isSelected: _selectedCode == langs[i].code && langs[i].isUnlocked,
                         locked: !langs[i].isUnlocked,
-                        onTap: () => _selectLanguage(langs[i]),
+                        onTap: langs[i].isUnlocked ? () => _selectLanguage(langs[i]) : null,
                       ),
                       if (i < langs.length - 1)
                         const Divider(height: 1, color: AppColors.border, indent: 70),
@@ -145,7 +133,7 @@ class _FlagLangTile extends StatelessWidget {
   final String nativeName;
   final bool isSelected;
   final bool locked;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _FlagLangTile({
     required this.flag,
