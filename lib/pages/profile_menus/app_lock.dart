@@ -26,15 +26,14 @@ class SecurityHelper {
   static const String _keyPin = 'user_security_pin';
   static const String _keyPinEnabled = 'is_pin_enabled';
   static const String _keyFingerprintEnabled = 'is_fingerprint_enabled';
-
   static final LocalAuthentication _auth = LocalAuthentication();
   static bool isAuthenticating = false;
 
   static Future<bool> isFingerprintAvailable() async {
     try {
-      final bool isSupported = await _auth.isDeviceSupported();
-      final bool canCheck = await _auth.canCheckBiometrics;
-      final List<BiometricType> available = await _auth.getAvailableBiometrics();
+      final isSupported = await _auth.isDeviceSupported();
+      final canCheck = await _auth.canCheckBiometrics;
+      final available = await _auth.getAvailableBiometrics();
       return isSupported || canCheck || available.isNotEmpty;
     } catch (_) {
       return false;
@@ -53,9 +52,6 @@ class SecurityHelper {
           sensitiveTransaction: false,
         ),
       );
-    } on PlatformException catch (e) {
-      debugPrint('Biometrika PlatformException: ${e.code} - ${e.message}');
-      return false;
     } catch (_) {
       return false;
     } finally {
@@ -121,29 +117,20 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   String _tempNewPin = '';
   String? _savedPin;
   String? _errorMessage;
-
   bool _isFingerprintSupported = false;
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isSuccess = false;
-
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _shakeController = AnimationController(
-      duration: const Duration(milliseconds: 350),
-      vsync: this,
-    );
-    _shakeAnimation = Tween<double>(begin: 0, end: 10)
-        .chain(CurveTween(curve: Curves.elasticIn))
-        .animate(_shakeController)
+    _shakeController = AnimationController(duration: const Duration(milliseconds: 350), vsync: this);
+    _shakeAnimation = Tween<double>(begin: 0, end: 10).chain(CurveTween(curve: Curves.elasticIn)).animate(_shakeController)
       ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _shakeController.reverse();
-        }
+        if (status == AnimationStatus.completed) _shakeController.reverse();
       });
     _initSecurity();
   }
@@ -184,11 +171,14 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     if (_isSuccess) return;
     setState(() => _isSuccess = true);
     HapticFeedback.mediumImpact();
-    Future.delayed(const Duration(milliseconds: 450), () {
+    Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      widget.onAuthenticated?.call();
       if (widget.isInitialSetup) {
         Navigator.of(context).pop(true);
+        return;
+      }
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!();
         return;
       }
       final destination = widget.nextScreen ?? const HomeScreen();
@@ -196,9 +186,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 400),
           pageBuilder: (_, _, _) => destination,
-          transitionsBuilder: (_, animation, _, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
+          transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
         ),
         (route) => false,
       );
@@ -238,7 +226,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         _triggerError(s.pinWrong);
       }
     } else if (_mode == LockScreenMode.createPin) {
-      await Future.delayed(const Duration(milliseconds: 120));
       setState(() {
         _tempNewPin = _enteredPin;
         _enteredPin = '';
@@ -272,10 +259,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   }
 
   String _titleOf(AppStrings s) {
-    if (_isSuccess) {
-      if (_mode == LockScreenMode.unlock) return s.pinSuccess;
-      return s.pinSaved;
-    }
+    if (_isSuccess) return _mode == LockScreenMode.unlock ? s.pinSuccess : s.pinSaved;
     switch (_mode) {
       case LockScreenMode.unlock:
         return s.pinUnlockTitle;
@@ -287,10 +271,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   }
 
   String _subOf(AppStrings s) {
-    if (_isSuccess) {
-      if (widget.isInitialSetup) return s.pinSaved;
-      return s.pinGoingHome;
-    }
+    if (_isSuccess) return widget.isInitialSetup ? s.pinSaved : s.pinGoingHome;
     switch (_mode) {
       case LockScreenMode.unlock:
         return s.pinUnlockSub;
@@ -316,7 +297,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         body: Center(child: CupertinoActivityIndicator(color: AppColors.primary)),
       );
     }
-
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -326,7 +306,6 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
             colors: [AppColors.bgTop, AppColors.bgBottom],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            stops: [0.0, 0.7],
           ),
         ),
         child: SafeArea(
@@ -349,78 +328,39 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                   ],
                 ),
                 const Spacer(),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: _isSuccess ? AppColors.success.withValues(alpha: 0.2) : AppColors.primary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _isSuccess ? AppColors.success : AppColors.primary.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Icon(
-                    _isSuccess ? CupertinoIcons.checkmark_alt : CupertinoIcons.lock_shield_fill,
-                    size: 40,
-                    color: _isSuccess ? AppColors.success : AppColors.primary,
-                  ),
+                Icon(
+                  _isSuccess ? CupertinoIcons.checkmark_alt : CupertinoIcons.lock_shield_fill,
+                  size: 48,
+                  color: _isSuccess ? AppColors.success : AppColors.primary,
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  _titleOf(s),
-                  style: TextStyle(
-                    color: _isSuccess ? AppColors.success : AppColors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                const SizedBox(height: 18),
+                Text(_titleOf(s), style: TextStyle(color: _isSuccess ? AppColors.success : AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
-                Text(
-                  _subOf(s),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
-                ),
+                Text(_subOf(s), textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5)),
                 const SizedBox(height: 32),
                 AnimatedBuilder(
                   animation: _shakeAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(offset: Offset(_shakeAnimation.value, 0), child: child);
-                  },
+                  builder: (context, child) => Transform.translate(offset: Offset(_shakeAnimation.value, 0), child: child),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(4, (index) {
-                      final bool isFilled = index < _enteredPin.length;
-                      final bool isErr = _errorMessage != null;
-                      Color dotColor;
-                      if (_isSuccess) {
-                        dotColor = AppColors.success;
-                      } else if (isErr) {
-                        dotColor = AppColors.error;
-                      } else if (isFilled) {
-                        dotColor = AppColors.primary;
-                      } else {
-                        dotColor = Colors.transparent;
-                      }
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
+                      final filled = index < _enteredPin.length;
+                      final err = _errorMessage != null;
+                      final color = _isSuccess
+                          ? AppColors.success
+                          : err
+                              ? AppColors.error
+                              : filled
+                                  ? AppColors.primary
+                                  : Colors.transparent;
+                      return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 10),
-                        width: isFilled || _isSuccess ? 18 : 14,
-                        height: isFilled || _isSuccess ? 18 : 14,
+                        width: 16,
+                        height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: dotColor,
-                          border: Border.all(
-                            color: _isSuccess
-                                ? AppColors.success
-                                : isErr
-                                    ? AppColors.error
-                                    : isFilled
-                                        ? AppColors.primary
-                                        : AppColors.border,
-                            width: 2,
-                          ),
+                          color: color,
+                          border: Border.all(color: color == Colors.transparent ? AppColors.border : color, width: 2),
                         ),
                       );
                     }),
@@ -429,12 +369,9 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 SizedBox(
                   height: 36,
                   child: Center(
-                    child: _errorMessage != null
-                        ? Text(
-                            _errorMessage!,
-                            style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600),
-                          )
-                        : null,
+                    child: _errorMessage == null
+                        ? null
+                        : Text(_errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
                 ),
                 const Spacer(),
@@ -468,14 +405,8 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                       padding: EdgeInsets.zero,
                       onPressed: _tryBiometrics,
                       child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.surface,
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: const Center(
-                          child: Icon(CupertinoIcons.person_crop_circle_badge_checkmark, color: AppColors.primary, size: 30),
-                        ),
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.surface, border: Border.all(color: AppColors.border)),
+                        child: const Center(child: Icon(CupertinoIcons.person_crop_circle_badge_checkmark, color: AppColors.primary, size: 30)),
                       ),
                     )
                   : const SizedBox.shrink(),
@@ -488,14 +419,8 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 padding: EdgeInsets.zero,
                 onPressed: _onBackspaceTap,
                 child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Center(
-                    child: Icon(CupertinoIcons.delete_left, color: AppColors.textMuted, size: 24),
-                  ),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.surface, border: Border.all(color: AppColors.border)),
+                  child: const Center(child: Icon(CupertinoIcons.delete_left, color: AppColors.textMuted, size: 24)),
                 ),
               ),
             ),
@@ -506,10 +431,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   }
 
   Widget _buildRow(List<String> digits) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: digits.map(_buildButton).toList(),
-    );
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: digits.map(_buildButton).toList());
   }
 
   Widget _buildButton(String digit) {
@@ -520,21 +442,8 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         padding: EdgeInsets.zero,
         onPressed: () => _onNumberTap(digit),
         child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Center(
-            child: Text(
-              digit,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 26,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.surface, border: Border.all(color: AppColors.border)),
+          child: Center(child: Text(digit, style: const TextStyle(color: AppColors.textPrimary, fontSize: 26, fontWeight: FontWeight.w600))),
         ),
       ),
     );
