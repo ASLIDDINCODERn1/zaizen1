@@ -20,8 +20,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedCode =
-        Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
+    final code = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
+    _selectedCode = isLanguageUnlocked(code) ? code : 'uz';
   }
 
   @override
@@ -30,11 +30,21 @@ class _LanguageScreenState extends State<LanguageScreen> {
     super.dispose();
   }
 
-  Future<void> _selectLanguage(String code) async {
-    if (code == _selectedCode) return;
-    setState(() => _selectedCode = code);
-    final provider = Provider.of<LocaleProvider>(context, listen: false);
-    await provider.setLocale(code);
+  Future<void> _selectLanguage(AppLanguage lang) async {
+    if (!lang.isUnlocked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Bu til hali ishga tushmagan'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+    if (lang.code == _selectedCode) return;
+    setState(() => _selectedCode = lang.code);
+    await Provider.of<LocaleProvider>(context, listen: false).setLocale(lang.code);
     if (!mounted) return;
     Navigator.pop(context);
   }
@@ -87,12 +97,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
                   controller: _searchCtrl,
                   onChanged: (v) => setState(() => _query = v),
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5),
-                  decoration: const InputDecoration(
-                    hintText: 'Search / qidirish',
-                    hintStyle: TextStyle(color: AppColors.textMuted),
-                    prefixIcon: Icon(CupertinoIcons.search, color: AppColors.textMuted, size: 18),
+                  decoration: InputDecoration(
+                    hintText: s.languageSearchHint,
+                    hintStyle: const TextStyle(color: AppColors.textMuted),
+                    prefixIcon: const Icon(CupertinoIcons.search, color: AppColors.textMuted, size: 18),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   ),
                 ),
               ),
@@ -108,9 +118,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
                       _FlagLangTile(
                         flag: langs[i].flag,
                         name: langs[i].name,
-                        nativeName: '${langs[i].nativeName}  •  ${langs[i].country}',
-                        isSelected: _selectedCode == langs[i].code,
-                        onTap: () => _selectLanguage(langs[i].code),
+                        nativeName: langs[i].isUnlocked
+                            ? '${langs[i].nativeName}  •  ${langs[i].country}'
+                            : 'Tez orada',
+                        isSelected: _selectedCode == langs[i].code && langs[i].isUnlocked,
+                        locked: !langs[i].isUnlocked,
+                        onTap: () => _selectLanguage(langs[i]),
                       ),
                       if (i < langs.length - 1)
                         const Divider(height: 1, color: AppColors.border, indent: 70),
@@ -131,6 +144,7 @@ class _FlagLangTile extends StatelessWidget {
   final String name;
   final String nativeName;
   final bool isSelected;
+  final bool locked;
   final VoidCallback onTap;
 
   const _FlagLangTile({
@@ -138,6 +152,7 @@ class _FlagLangTile extends StatelessWidget {
     required this.name,
     required this.nativeName,
     required this.isSelected,
+    required this.locked,
     required this.onTap,
   });
 
@@ -146,42 +161,66 @@ class _FlagLangTile extends StatelessWidget {
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary.withOpacity(0.15)
-                    : AppColors.border.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(child: Text(flag, style: const TextStyle(fontSize: 26))),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Opacity(
+        opacity: locked ? 0.55 : 1,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Row(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.15)
+                          : AppColors.border.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    child: Center(child: Text(flag, style: const TextStyle(fontSize: 26))),
                   ),
-                  const SizedBox(height: 2),
-                  Text(nativeName, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  if (locked)
+                    Positioned(
+                      right: -4,
+                      bottom: -4,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1F2937),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(CupertinoIcons.lock_fill, size: 11, color: Colors.white),
+                      ),
+                    ),
                 ],
               ),
-            ),
-            if (isSelected)
-              const Icon(CupertinoIcons.checkmark_alt_circle_fill, color: AppColors.primary, size: 24),
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(nativeName, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  ],
+                ),
+              ),
+              if (locked)
+                const Icon(CupertinoIcons.lock_fill, color: AppColors.textMuted, size: 18)
+              else if (isSelected)
+                const Icon(CupertinoIcons.checkmark_alt_circle_fill, color: AppColors.primary, size: 24),
+            ],
+          ),
         ),
       ),
     );
