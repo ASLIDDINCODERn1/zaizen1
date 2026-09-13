@@ -70,19 +70,19 @@ const List<AppLanguage> kSupportedLanguages = [
 
 List<AppLanguage> languagesMatching(String query) {
   final q = query.trim().toLowerCase();
-  final list = q.isEmpty
+  final filtered = q.isEmpty
       ? kSupportedLanguages
       : kSupportedLanguages.where((l) {
           return l.code.contains(q) ||
               l.name.toLowerCase().contains(q) ||
               l.nativeName.toLowerCase().contains(q) ||
               l.country.toLowerCase().contains(q);
-        }).toList();
+        });
+  final list = List<AppLanguage>.from(filtered);
   list.sort((a, b) {
     final au = a.isUnlocked ? 0 : 1;
     final bu = b.isUnlocked ? 0 : 1;
-    if (au != bu) return au.compareTo(bu);
-    return 0;
+    return au.compareTo(bu);
   });
   return list;
 }
