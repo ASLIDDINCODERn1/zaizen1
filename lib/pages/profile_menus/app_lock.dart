@@ -36,15 +36,15 @@ class SecurityHelper {
       final bool canCheck = await _auth.canCheckBiometrics;
       final List<BiometricType> available = await _auth.getAvailableBiometrics();
       return isSupported || canCheck || available.isNotEmpty;
-    } catch (e) {
-      return true;
+    } catch (_) {
+      return false;
     }
   }
 
   static Future<bool> authenticateWithBiometrics() async {
     try {
       isAuthenticating = true;
-      final bool didAuth = await _auth.authenticate(
+      return await _auth.authenticate(
         localizedReason: LanguageScope.strings.biometricReason,
         options: const AuthenticationOptions(
           stickyAuth: true,
@@ -53,11 +53,10 @@ class SecurityHelper {
           sensitiveTransaction: false,
         ),
       );
-      return didAuth;
     } on PlatformException catch (e) {
       debugPrint('Biometrika PlatformException: ${e.code} - ${e.message}');
       return false;
-    } catch (e) {
+    } catch (_) {
       return false;
     } finally {
       Future.delayed(const Duration(milliseconds: 600), () {
@@ -68,9 +67,9 @@ class SecurityHelper {
 
   static Future<String?> getSavedPin() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool isEnabled = prefs.getBool(_keyPinEnabled) ?? false;
-    if (!isEnabled) return null;
-    return prefs.getString(_keyPin);
+    final pin = prefs.getString(_keyPin);
+    if (pin == null || pin.isEmpty) return null;
+    return pin;
   }
 
   static Future<void> savePin(String pin) async {
@@ -89,7 +88,7 @@ class SecurityHelper {
 
   static Future<bool> isFingerprintEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyFingerprintEnabled) ?? true;
+    return prefs.getBool(_keyFingerprintEnabled) ?? false;
   }
 
   static Future<void> setFingerprintEnabled(bool enabled) async {
@@ -123,7 +122,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   String? _savedPin;
   String? _errorMessage;
 
-  bool _isFingerprintSupported = true;
+  bool _isFingerprintSupported = false;
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _isSuccess = false;
@@ -178,25 +177,17 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     _isSubmitting = true;
     final success = await SecurityHelper.authenticateWithBiometrics();
     _isSubmitting = false;
-    if (success && mounted) {
-      _goToHomeScreen();
-    }
+    if (success && mounted) _finish();
   }
 
-  void _goToHomeScreen() {
+  void _finish() {
     if (_isSuccess) return;
     setState(() => _isSuccess = true);
     HapticFeedback.mediumImpact();
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 450), () {
       if (!mounted) return;
-      if (widget.onAuthenticated != null) {
-        try {
-          widget.onAuthenticated!();
-        } catch (e) {
-          debugPrint('onAuthenticated callback xatosi: $e');
-        }
-      }
-      if (widget.isInitialSetup && Navigator.of(context).canPop()) {
+      widget.onAuthenticated?.call();
+      if (widget.isInitialSetup) {
         Navigator.of(context).pop(true);
         return;
       }
@@ -222,9 +213,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         _enteredPin += number;
         _errorMessage = null;
       });
-      if (_enteredPin.length == 4) {
-        _handlePinEntered();
-      }
+      if (_enteredPin.length == 4) _handlePinEntered();
     }
   }
 
@@ -244,12 +233,12 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     final s = context.read<LocaleProvider>().strings;
     if (_mode == LockScreenMode.unlock) {
       if (_enteredPin == _savedPin) {
-        _goToHomeScreen();
+        _finish();
       } else {
         _triggerError(s.pinWrong);
       }
     } else if (_mode == LockScreenMode.createPin) {
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 120));
       setState(() {
         _tempNewPin = _enteredPin;
         _enteredPin = '';
@@ -260,7 +249,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
       if (_enteredPin == _tempNewPin) {
         await SecurityHelper.savePin(_enteredPin);
         HapticFeedback.heavyImpact();
-        _goToHomeScreen();
+        _finish();
       } else {
         _triggerError(s.pinMismatch);
         setState(() {
@@ -299,9 +288,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
 
   String _subOf(AppStrings s) {
     if (_isSuccess) {
-      if (widget.isInitialSetup && Navigator.of(context).canPop()) {
-        return s.pinSaved;
-      }
+      if (widget.isInitialSetup) return s.pinSaved;
       return s.pinGoingHome;
     }
     switch (_mode) {
@@ -326,7 +313,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.bgBottom,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(child: CupertinoActivityIndicator(color: AppColors.primary)),
       );
     }
 
@@ -352,7 +339,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                     if (widget.isInitialSetup)
                       CupertinoButton(
                         padding: EdgeInsets.zero,
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(context, false),
                         child: const Icon(CupertinoIcons.xmark, color: AppColors.textPrimary),
                       )
                     else
@@ -367,17 +354,15 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                   width: 76,
                   height: 76,
                   decoration: BoxDecoration(
-                    color: _isSuccess
-                        ? AppColors.success.withOpacity(0.2)
-                        : AppColors.primary.withOpacity(0.12),
+                    color: _isSuccess ? AppColors.success.withValues(alpha: 0.2) : AppColors.primary.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: _isSuccess ? AppColors.success : AppColors.primary.withOpacity(0.3),
+                      color: _isSuccess ? AppColors.success : AppColors.primary.withValues(alpha: 0.3),
                       width: 1.5,
                     ),
                   ),
                   child: Icon(
-                    _isSuccess ? Icons.check_rounded : CupertinoIcons.lock_shield_fill,
+                    _isSuccess ? CupertinoIcons.checkmark_alt : CupertinoIcons.lock_shield_fill,
                     size: 40,
                     color: _isSuccess ? AppColors.success : AppColors.primary,
                   ),
@@ -401,10 +386,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 AnimatedBuilder(
                   animation: _shakeAnimation,
                   builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(_shakeAnimation.value, 0),
-                      child: child,
-                    );
+                    return Transform.translate(offset: Offset(_shakeAnimation.value, 0), child: child);
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -492,7 +474,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                           border: Border.all(color: AppColors.border),
                         ),
                         child: const Center(
-                          child: Icon(Icons.fingerprint, color: AppColors.primary, size: 34),
+                          child: Icon(CupertinoIcons.person_crop_circle_badge_checkmark, color: AppColors.primary, size: 30),
                         ),
                       ),
                     )
@@ -526,7 +508,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   Widget _buildRow(List<String> digits) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: digits.map((d) => _buildButton(d)).toList(),
+      children: digits.map(_buildButton).toList(),
     );
   }
 
