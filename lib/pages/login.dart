@@ -1,13 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/password_rules.dart';
 import 'package:zaizen/l10n/l10n_scope.dart';
 import 'package:zaizen/pages/forgot_password.dart';
-import 'package:zaizen/pages/no_internet_screen.dart';
 
 class AppColors {
   static const bgTop = Color(0xFF0D1526);
@@ -21,7 +18,6 @@ class AppColors {
   static const textPrimary = Colors.white;
   static const textSecondary = Color(0xFF9AA3B2);
   static const textMuted = Color(0xFF6B7280);
-  static const google = Color(0xFFEA4335);
   static const error = Color(0xFFEF4444);
 }
 
@@ -39,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscure = true;
   bool _obscure2 = true;
   bool _loading = false;
-  bool _googleLoading = false;
 
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -83,19 +78,6 @@ class _LoginScreenState extends State<LoginScreen>
         behavior: SnackBarBehavior.floating,
       ),
     );
-  }
-
-  Future<void> _handleGoogle() async {
-    HapticFeedback.selectionClick();
-    setState(() => _googleLoading = true);
-    try {
-      context.read<ConnectivityProvider>().lockDuringAuth();
-      await AuthService.instance.signInWithGoogle();
-    } catch (e) {
-      if (mounted) _toast(e.toString(), error: true);
-    } finally {
-      if (mounted) setState(() => _googleLoading = false);
-    }
   }
 
   Future<void> _handleSubmit() async {
@@ -305,28 +287,6 @@ class _LoginScreenState extends State<LoginScreen>
                                 label: _isSignUp ? s.signUp : s.signIn,
                                 loading: _loading,
                                 onTap: _loading ? () {} : _handleSubmit,
-                              ),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  const Expanded(child: Divider(color: AppColors.border)),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                                    child: Text(
-                                      s.orWord,
-                                      style: const TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 12.5,
-                                      ),
-                                    ),
-                                  ),
-                                  const Expanded(child: Divider(color: AppColors.border)),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              _GoogleButton(
-                                loading: _googleLoading,
-                                onTap: _googleLoading ? () {} : _handleGoogle,
                               ),
                             ],
                           ),
@@ -563,59 +523,6 @@ class _PrimaryButton extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-      ),
-    );
-  }
-}
-
-class _GoogleButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final bool loading;
-  const _GoogleButton({required this.onTap, this.loading = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: loading ? null : onTap,
-      child: Container(
-        width: double.infinity,
-        height: 52,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: const Color(0xFF171C28),
-          border: Border.all(color: const Color(0xFF2A3142)),
-        ),
-        alignment: Alignment.center,
-        child: loading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SvgPicture.asset(
-                    'assets/google.svg',
-                    width: 22,
-                    height: 22,
-                    placeholderBuilder: (_) => const Icon(
-                      Icons.g_mobiledata_rounded,
-                      color: Color(0xFFEA4335),
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    L.of(context).googleContinue,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
               ),
       ),
     );
