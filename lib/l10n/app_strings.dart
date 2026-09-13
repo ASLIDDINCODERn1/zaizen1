@@ -12,7 +12,7 @@ class AppStrings {
   String _k(String key) {
     final row = kI18n[key];
     if (row == null) return key;
-    return row[languageCode] ?? row['en'] ?? key;
+    return row[languageCode] ?? row['en'] ?? row['uz'] ?? key;
   }
 
   String get navHome => _k('navHome');
