@@ -1,12 +1,1 @@
-import 'package:flutter/material.dart';
-import 'package:zaizen/pages/login.dart';
-
-/// Eski route saqlanadi — yangi UI login ekranidagi Ro'yxat tabida.
-class SignUpScreen extends StatelessWidget {
-  const SignUpScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const LoginScreen(startOnSignUp: true);
-  }
-}
+export 'package:zaizen/features/auth/presentation/signup_page.dart';
