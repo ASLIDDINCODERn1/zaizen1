@@ -60,12 +60,6 @@ class _FloatingNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
     final c = ZColors.of(context);
-    final settingsLabel = switch (context.watch<LocaleProvider>().locale.languageCode) {
-      'ru' => 'Настройки',
-      'en' => 'Settings',
-      'ja' => '設定',
-      _ => 'Sozlamalar',
-    };
     return Padding(
       padding: EdgeInsets.fromLTRB(PageGutters.navSide(context), 0, PageGutters.navSide(context), 18),
       child: Container(
@@ -81,7 +75,7 @@ class _FloatingNavBar extends StatelessWidget {
             _NavButton(icon: currentIndex == 0 ? CupertinoIcons.house_fill : CupertinoIcons.house, label: s.navHome, active: currentIndex == 0, onTap: () => onTap(0)),
             _NavButton(icon: currentIndex == 1 ? CupertinoIcons.chart_bar_fill : CupertinoIcons.chart_bar, label: s.navRating, active: currentIndex == 1, onTap: () => onTap(1)),
             _NavButton(icon: currentIndex == 2 ? CupertinoIcons.person_fill : CupertinoIcons.person, label: s.navProfile, active: currentIndex == 2, onTap: () => onTap(2)),
-            _NavButton(icon: currentIndex == 3 ? CupertinoIcons.gear_alt_fill : CupertinoIcons.gear, label: settingsLabel, active: currentIndex == 3, onTap: () => onTap(3)),
+            _NavButton(icon: currentIndex == 3 ? CupertinoIcons.gear_alt_fill : CupertinoIcons.gear, label: s.navSettings, active: currentIndex == 3, onTap: () => onTap(3)),
           ],
         ),
       ),
@@ -107,7 +101,7 @@ class _NavButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
               decoration: BoxDecoration(
                 color: active ? c.primary.withValues(alpha: 0.16) : Colors.transparent,
@@ -139,7 +133,11 @@ class _SmoothCard extends StatelessWidget {
     final c = ZColors.of(context);
     return Container(
       padding: padding,
-      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: c.border.withValues(alpha: 0.7), width: 0.7)),
+      decoration: BoxDecoration(
+        color: c.surface.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.border.withValues(alpha: 0.55), width: 0.7),
+      ),
       child: child,
     );
   }
@@ -178,36 +176,12 @@ class _HomeTab extends StatelessWidget {
         ]),
         const SizedBox(height: 20),
         Row(children: [
-          Expanded(child: _StatCard(icon: CupertinoIcons.star_fill, value: '1,248', label: s.score, color: c.primary)),
+          Expanded(child: _StatCard(icon: CupertinoIcons.star_fill, value: '0', label: s.score, color: c.primary)),
           const SizedBox(width: 10),
-          Expanded(child: _StatCard(icon: CupertinoIcons.flame_fill, value: '12', label: s.streak, color: const Color(0xFFEA580C))),
+          Expanded(child: _StatCard(icon: CupertinoIcons.flame_fill, value: '0', label: s.streak, color: const Color(0xFFEA580C))),
           const SizedBox(width: 10),
-          Expanded(child: _StatCard(icon: CupertinoIcons.rosette, value: '#7', label: s.rank, color: const Color(0xFFEAB308))),
+          Expanded(child: _StatCard(icon: CupertinoIcons.rosette, value: '#0', label: s.rank, color: const Color(0xFFEAB308))),
         ]),
-        const SizedBox(height: 22),
-        Text(s.todayGoal, style: TextStyle(color: c.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        _SmoothCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: c.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)), child: Icon(CupertinoIcons.checkmark_seal_fill, color: c.primary)),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.finishLessons, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 15)),
-              const SizedBox(height: 2),
-              Text(s.lessonsProgress, style: TextStyle(color: c.textMuted, fontSize: 12.5)),
-            ])),
-          ]),
-          const SizedBox(height: 14),
-          ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: 0.66, minHeight: 8, backgroundColor: c.border, valueColor: AlwaysStoppedAnimation(c.primary))),
-        ])),
-        const SizedBox(height: 22),
-        Text(s.recentActivity, style: TextStyle(color: c.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        _ActivityTile(icon: CupertinoIcons.book_fill, title: s.activityLesson, subtitle: s.hoursAgo, trailing: '+120'),
-        const SizedBox(height: 10),
-        _ActivityTile(icon: CupertinoIcons.chat_bubble_2_fill, title: s.activityGroup, subtitle: s.yesterday, trailing: '+40'),
-        const SizedBox(height: 10),
-        _ActivityTile(icon: CupertinoIcons.line_horizontal_3_decrease_circle, title: s.activityWeekly, subtitle: s.twoDaysAgo, trailing: '+300'),
       ],
     );
   }
@@ -255,40 +229,15 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _ActivityTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String trailing;
-  const _ActivityTile({required this.icon, required this.title, required this.subtitle, required this.trailing});
-  @override
-  Widget build(BuildContext context) {
-    final c = ZColors.of(context);
-    return _SmoothCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(children: [
-        Container(width: 42, height: 42, decoration: BoxDecoration(color: c.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: c.primary, size: 19)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 14.5)),
-          const SizedBox(height: 2),
-          Text(subtitle, style: TextStyle(color: c.textMuted, fontSize: 12)),
-        ])),
-        Text(trailing, style: TextStyle(color: c.primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
-      ]),
-    );
-  }
-}
-
 class _LeaderboardTab extends StatelessWidget {
   const _LeaderboardTab();
   static const List<Map<String, dynamic>> _users = [
-    {'name': 'Malika Yusupova', 'score': 3120, 'rank': 1},
-    {'name': 'Jasur Toshev', 'score': 2890, 'rank': 2},
-    {'name': 'Dilnoza Rahimova', 'score': 2640, 'rank': 3},
-    {'name': 'You', 'score': 1248, 'rank': 7, 'isMe': true},
-    {'name': 'Sardor Aliyev', 'score': 1120, 'rank': 8},
-    {'name': 'Kamola Nabieva', 'score': 980, 'rank': 9},
+    {'name': 'Malika Yusupova', 'score': 0, 'rank': 1},
+    {'name': 'Jasur Toshev', 'score': 0, 'rank': 2},
+    {'name': 'Dilnoza Rahimova', 'score': 0, 'rank': 3},
+    {'name': 'You', 'score': 0, 'rank': 7, 'isMe': true},
+    {'name': 'Sardor Aliyev', 'score': 0, 'rank': 8},
+    {'name': 'Kamola Nabieva', 'score': 0, 'rank': 9},
   ];
   Color _rankColor(int rank) {
     switch (rank) {
