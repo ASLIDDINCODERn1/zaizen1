@@ -73,7 +73,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _goNext() async {
     if (!mounted || _leaving) return;
     _leaving = true;
-    await AppPermissions.requestStartup();
+    await AppPermissions.requestStartup;
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(

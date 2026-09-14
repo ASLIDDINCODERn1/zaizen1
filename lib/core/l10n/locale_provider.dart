@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zaizen/core/l10n/app_strings.dart';
-import 'package:zaizen/core/l10n/supported_languages.dart';
+import 'package:zaizen/l10n/app_strings.dart' show LanguageScope, AppStrings;
+import 'package:zaizen/l10n/supported_languages.dart';
+
 
 class LocaleProvider extends ChangeNotifier {
   static const _key = 'app_language_code';

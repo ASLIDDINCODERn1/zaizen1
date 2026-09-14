@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zaizen/features/auth/presentation/login_page.dart';
+import 'package:zaizen/pages/login.dart';
 
 class SignUpScreen extends StatelessWidget {
   const SignUpScreen({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:zaizen/core/l10n/app_strings.dart';
 import 'package:zaizen/core/l10n/locale_provider.dart';
+import 'package:zaizen/l10n/app_strings.dart';
 
 /// UI widgetlar: L.of(context).signIn
 /// Servislar: LanguageScope.strings

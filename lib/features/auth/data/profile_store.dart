@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:zaizen/features/auth/data/auth_service.dart';
+import 'package:zaizen/auth/auth_service.dart';
 
 class ProfileStore extends ChangeNotifier {
   ProfileStore() {
