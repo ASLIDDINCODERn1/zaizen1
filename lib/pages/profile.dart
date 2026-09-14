@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:zaizen/auth/auth_service.dart';
 import 'package:zaizen/auth/profile_store.dart';
+import 'package:zaizen/core/app_permissions.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/profile_menus/personal_info.dart';
 import 'package:zaizen/ui/app_theme.dart';
@@ -43,6 +44,8 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Future<void> _editPhoto() async {
+    final allowed = await AppPermissions.ensure(context, AppPermissionKind.photos);
+    if (!allowed || !mounted) return;
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 70,
