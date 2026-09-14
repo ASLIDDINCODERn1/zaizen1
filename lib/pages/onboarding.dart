@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:zaizen/core/app_permissions.dart';
 
 class SplashScreen extends StatefulWidget {
   final Widget nextScreen;
@@ -27,6 +28,7 @@ class _SplashScreenState extends State<SplashScreen>
   Timer? _typeTimer;
   int _charIndex = 0;
   bool _startTyping = false;
+  bool _leaving = false;
 
   @override
   void initState() {
@@ -68,7 +70,10 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  void _goNext() {
+  Future<void> _goNext() async {
+    if (!mounted || _leaving) return;
+    _leaving = true;
+    await AppPermissions.requestStartup();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
