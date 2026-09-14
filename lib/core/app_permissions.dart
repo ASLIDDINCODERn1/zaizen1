@@ -3,7 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:zaizen/locale_provider.dart';
 
-enum AppPermissionKind { notification, microphone, photos }
+enum AppPermissionKind { notification, microphone, photos, camera }
 
 class AppPermissions {
   AppPermissions._();
@@ -16,6 +16,8 @@ class AppPermissions {
         return Permission.microphone;
       case AppPermissionKind.photos:
         return Permission.photos;
+      case AppPermissionKind.camera:
+        return Permission.camera;
     }
   }
 
@@ -52,7 +54,12 @@ class AppPermissions {
   }
 
   static Future<void> requestStartup(BuildContext context) async {
-    for (final kind in AppPermissionKind.values) {
+    const startup = [
+      AppPermissionKind.notification,
+      AppPermissionKind.microphone,
+      AppPermissionKind.photos,
+    ];
+    for (final kind in startup) {
       if (!context.mounted) return;
       if (await isGranted(kind)) continue;
       await ensure(context, kind);
@@ -96,36 +103,44 @@ class AppPermissions {
           case AppPermissionKind.notification:
             return ('Включите уведомления', 'Чтобы получать сообщения, разрешите уведомления.', 'Включить', 'Позже');
           case AppPermissionKind.microphone:
-            return ('Включите микрофон', 'Для голоса в чате нужен микрофон.', 'Включить', 'Позже');
+            return ('Включите микрофон', 'Для realtime нужен микрофон.', 'Включить', 'Позже');
           case AppPermissionKind.photos:
             return ('Включите галерею', 'Для фото профиля нужен доступ к фото.', 'Включить', 'Позже');
+          case AppPermissionKind.camera:
+            return ('Включите камеру', 'Для realtime нужен доступ к камере.', 'Включить', 'Позже');
         }
       case 'en':
         switch (kind) {
           case AppPermissionKind.notification:
             return ('Turn on notifications', 'Allow notifications to receive alerts.', 'Turn on', 'Later');
           case AppPermissionKind.microphone:
-            return ('Turn on microphone', 'Chat voice needs microphone access.', 'Turn on', 'Later');
+            return ('Turn on microphone', 'Realtime needs microphone access.', 'Turn on', 'Later');
           case AppPermissionKind.photos:
             return ('Turn on photos', 'Profile photo needs gallery access.', 'Turn on', 'Later');
+          case AppPermissionKind.camera:
+            return ('Turn on camera', 'Realtime needs camera access.', 'Turn on', 'Later');
         }
       case 'ja':
         switch (kind) {
           case AppPermissionKind.notification:
             return ('通知をオン', '通知を受け取るには許可が必要です。', 'オン', '後で');
           case AppPermissionKind.microphone:
-            return ('マイクをオン', 'チャットの音声にマイクが必要です。', 'オン', '後で');
+            return ('マイクをオン', 'Realtime にマイクが必要です。', 'オン', '後で');
           case AppPermissionKind.photos:
             return ('写真をオン', 'プロフィール写真にギャラリーが必要です。', 'オン', '後で');
+          case AppPermissionKind.camera:
+            return ('カメラをオン', 'Realtime にカメラが必要です。', 'オン', '後で');
         }
       default:
         switch (kind) {
           case AppPermissionKind.notification:
             return ('Bildirishnomalarni yoqing', 'Xabarlar uchun ruxsat kerak.', 'Yoqing', 'Keyinroq');
           case AppPermissionKind.microphone:
-            return ('Mikrofonga ruxsat bering', 'Chatda ovoz uchun mikrofon kerak.', 'Yoqing', 'Keyinroq');
+            return ('Mikrofonga ruxsat bering', 'Realtime uchun mikrofon kerak.', 'Yoqing', 'Keyinroq');
           case AppPermissionKind.photos:
             return ('Galereyani yoqing', 'Profil rasmi uchun galereya kerak.', 'Yoqing', 'Keyinroq');
+          case AppPermissionKind.camera:
+            return ('Kamerani yoqing', 'Realtime uchun kamera kerak.', 'Yoqing', 'Keyinroq');
         }
     }
   }
