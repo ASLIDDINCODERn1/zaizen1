@@ -1,9 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:zaizen/core/app_permissions.dart';
 import 'package:zaizen/locale_provider.dart';
+import 'package:zaizen/pages/chat/ai_chat_page.dart';
 import 'package:zaizen/pages/lessons/lessons_path.dart';
-import 'package:zaizen/pages/realtime/realtime_page.dart';
 import 'package:zaizen/ui/app_theme.dart';
 
 Map<String, String> hubCopy(String code) {
@@ -12,8 +11,8 @@ Map<String, String> hubCopy(String code) {
       return {
         'lessons': 'Уроки',
         'lessonsSub': 'Начать урок',
-        'chat': 'Realtime',
-        'chatSub': 'Камера и микрофон',
+        'chat': 'AI Chat',
+        'chatSub': 'Репетитор Zaizen',
         'dict': 'Словарь',
         'dictSub': 'Слова и кандзи',
         'saved': 'Избранное',
@@ -25,8 +24,8 @@ Map<String, String> hubCopy(String code) {
       return {
         'lessons': 'Lessons',
         'lessonsSub': 'Start a lesson',
-        'chat': 'Realtime',
-        'chatSub': 'Camera and mic',
+        'chat': 'AI Chat',
+        'chatSub': 'Zaizen tutor',
         'dict': 'Dictionary',
         'dictSub': 'Words and kanji',
         'saved': 'Saved',
@@ -38,8 +37,8 @@ Map<String, String> hubCopy(String code) {
       return {
         'lessons': 'レッスン',
         'lessonsSub': '学習を始める',
-        'chat': 'Realtime',
-        'chatSub': 'カメラとマイク',
+        'chat': 'AI Chat',
+        'chatSub': 'Zaizen tutor',
         'dict': '辞書',
         'dictSub': '単語と漢字',
         'saved': '保存',
@@ -51,8 +50,8 @@ Map<String, String> hubCopy(String code) {
       return {
         'lessons': 'Darslar',
         'lessonsSub': 'Darsni boshlash',
-        'chat': 'Realtime',
-        'chatSub': 'Kamera va mikrofon',
+        'chat': 'AI Chat',
+        'chatSub': 'Zaizen repetitori',
         'dict': "Lug'at",
         'dictSub': "So'z va kanji",
         'saved': 'Saqlangan',
@@ -66,12 +65,8 @@ Map<String, String> hubCopy(String code) {
 class HomeHubSection extends StatelessWidget {
   const HomeHubSection({super.key});
 
-  Future<void> _openRealtime(BuildContext context) async {
-    final cam = await AppPermissions.ensure(context, AppPermissionKind.camera);
-    if (!cam || !context.mounted) return;
-    final mic = await AppPermissions.ensure(context, AppPermissionKind.microphone);
-    if (!mic || !context.mounted) return;
-    Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const RealtimePage()));
+  void _openChat(BuildContext context) {
+    Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const AiChatPage()));
   }
 
   void _openLessons(BuildContext context) {
@@ -96,7 +91,7 @@ class HomeHubSection extends StatelessWidget {
               child: _ChatCard(
                 title: t['chat']!,
                 subtitle: t['chatSub']!,
-                onTap: () => _openRealtime(context),
+                onTap: () => _openChat(context),
               ),
             ),
             const SizedBox(width: 10),
@@ -239,7 +234,13 @@ class _ChatCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _HubIcon(CupertinoIcons.video_camera_solid),
+            const Row(
+              children: [
+                _HubIcon(CupertinoIcons.sparkles),
+                SizedBox(width: 6),
+                _HubIcon(CupertinoIcons.mic_fill),
+              ],
+            ),
             const Spacer(),
             Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
             const SizedBox(height: 2),
