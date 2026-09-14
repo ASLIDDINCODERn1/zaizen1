@@ -155,6 +155,8 @@ Map<String, String> _hubCopy(String code) {
         'practiceSub': 'Упражнения',
         'saved': 'Избранное',
         'savedSub': 'Ваши закладки',
+        'boardEmpty': 'Пока пусто',
+        'boardHint': 'Рейтинг появится после realtime',
       };
     case 'en':
       return {
@@ -166,6 +168,8 @@ Map<String, String> _hubCopy(String code) {
         'practiceSub': 'Drills',
         'saved': 'Saved',
         'savedSub': 'Your bookmarks',
+        'boardEmpty': 'No rankings yet',
+        'boardHint': 'Players will appear here in realtime',
       };
     case 'ja':
       return {
@@ -177,6 +181,8 @@ Map<String, String> _hubCopy(String code) {
         'practiceSub': '問題',
         'saved': '保存',
         'savedSub': 'ブックマーク',
+        'boardEmpty': 'まだランキングはありません',
+        'boardHint': 'リアルタイムで表示されます',
       };
     default:
       return {
@@ -188,6 +194,8 @@ Map<String, String> _hubCopy(String code) {
         'practiceSub': 'Mashqlar',
         'saved': 'Saqlangan',
         'savedSub': 'Belgilanganlar',
+        'boardEmpty': 'Hozircha reyting bo\'sh',
+        'boardHint': 'Realtime ulagach, o\'yinchilar shu yerda chiqadi',
       };
   }
 }
@@ -454,26 +462,11 @@ class _StatCard extends StatelessWidget {
 
 class _LeaderboardTab extends StatelessWidget {
   const _LeaderboardTab();
-  static const List<Map<String, dynamic>> _users = [
-    {'name': 'Malika Yusupova', 'score': 0, 'rank': 1},
-    {'name': 'Jasur Toshev', 'score': 0, 'rank': 2},
-    {'name': 'Dilnoza Rahimova', 'score': 0, 'rank': 3},
-    {'name': 'You', 'score': 0, 'rank': 7, 'isMe': true},
-    {'name': 'Sardor Aliyev', 'score': 0, 'rank': 8},
-    {'name': 'Kamola Nabieva', 'score': 0, 'rank': 9},
-  ];
-  Color _rankColor(int rank) {
-    switch (rank) {
-      case 1: return const Color(0xFFEAB308);
-      case 2: return const Color(0xFFB0B8C9);
-      case 3: return const Color(0xFFCD7F32);
-      default: return const Color(0xFF6B7280);
-    }
-  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
-    final me = context.watch<ProfileStore>().name;
+    final t = _hubCopy(context.watch<LocaleProvider>().locale.languageCode);
     final c = ZColors.of(context);
     return ListView(
       padding: PageGutters.of(context),
@@ -482,23 +475,34 @@ class _LeaderboardTab extends StatelessWidget {
         Text(s.leaderboardTitle, style: TextStyle(color: c.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
         Text(s.leaderboardSub, style: TextStyle(color: c.textMuted, fontSize: 13.5)),
-        const SizedBox(height: 18),
-        for (final u in _users) ...[
-          _SmoothCard(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(children: [
-              SizedBox(width: 28, child: Text('#${u['rank']}', style: TextStyle(color: _rankColor(u['rank'] as int), fontWeight: FontWeight.w700, fontSize: 14))),
-              const SizedBox(width: 8),
-              CircleAvatar(radius: 19, backgroundColor: c.border, child: Icon(CupertinoIcons.person_fill, color: c.textMuted, size: 18)),
-              const SizedBox(width: 12),
-              Expanded(child: Text((u['isMe'] == true && me.isNotEmpty) ? me : u['name'] as String, overflow: TextOverflow.ellipsis, style: TextStyle(color: (u['isMe'] == true) ? c.primary : c.textPrimary, fontWeight: FontWeight.w600, fontSize: 14.5))),
-              if ((u['rank'] as int) <= 3) Icon(CupertinoIcons.rosette, color: _rankColor(u['rank'] as int), size: 18),
-              const SizedBox(width: 6),
-              Text('${u['score']}', style: TextStyle(color: c.textSecondary, fontWeight: FontWeight.w600, fontSize: 13.5)),
-            ]),
+        const SizedBox(height: 48),
+        Center(
+          child: Column(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: c.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(CupertinoIcons.chart_bar_alt_fill, color: c.primary, size: 28),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                t['boardEmpty']!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                t['boardHint']!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: c.textMuted, fontSize: 13.5),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-        ],
+        ),
       ],
     );
   }
