@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:zaizen/auth/profile_store.dart';
+import 'package:zaizen/core/app_permissions.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/pages/home_hub.dart';
 import 'package:zaizen/pages/notifications_inbox.dart';
@@ -146,6 +147,13 @@ class _SmoothCard extends StatelessWidget {
 
 class _HomeTab extends StatelessWidget {
   const _HomeTab();
+
+  Future<void> _openInbox(BuildContext context) async {
+    final ok = await AppPermissions.ensure(context, AppPermissionKind.notification);
+    if (!ok || !context.mounted) return;
+    Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const NotificationsInboxScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
@@ -171,9 +179,7 @@ class _HomeTab extends StatelessWidget {
             Text(s.welcome, style: TextStyle(color: c.textMuted, fontSize: 13)),
             Text(profile.name.isEmpty ? 'User' : profile.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
           ])),
-          _IconCircle(icon: CupertinoIcons.bell, onTap: () {
-            Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const NotificationsInboxScreen()));
-          }),
+          _IconCircle(icon: CupertinoIcons.bell, onTap: () => _openInbox(context)),
         ]),
         const SizedBox(height: 20),
         Row(children: [
