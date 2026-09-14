@@ -143,11 +143,61 @@ class _SmoothCard extends StatelessWidget {
   }
 }
 
+Map<String, String> _hubCopy(String code) {
+  switch (code) {
+    case 'ru':
+      return {
+        'lessons': 'Уроки',
+        'lessonsSub': 'Начать урок',
+        'chat': 'Чат',
+        'chatSub': 'Realtime',
+        'practice': 'Практика',
+        'practiceSub': 'Упражнения',
+        'saved': 'Избранное',
+        'savedSub': 'Ваши закладки',
+      };
+    case 'en':
+      return {
+        'lessons': 'Lessons',
+        'lessonsSub': 'Start a lesson',
+        'chat': 'Chat',
+        'chatSub': 'Realtime',
+        'practice': 'Practice',
+        'practiceSub': 'Drills',
+        'saved': 'Saved',
+        'savedSub': 'Your bookmarks',
+      };
+    case 'ja':
+      return {
+        'lessons': 'レッスン',
+        'lessonsSub': '学習を始める',
+        'chat': 'チャット',
+        'chatSub': 'リアルタイム',
+        'practice': '練習',
+        'practiceSub': '問題',
+        'saved': '保存',
+        'savedSub': 'ブックマーク',
+      };
+    default:
+      return {
+        'lessons': 'Darslar',
+        'lessonsSub': 'Darsni boshlash',
+        'chat': 'Chat',
+        'chatSub': 'Realtime',
+        'practice': 'Mashq',
+        'practiceSub': 'Mashqlar',
+        'saved': 'Saqlangan',
+        'savedSub': 'Belgilanganlar',
+      };
+  }
+}
+
 class _HomeTab extends StatelessWidget {
   const _HomeTab();
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
+    final t = _hubCopy(context.watch<LocaleProvider>().locale.languageCode);
     final profile = context.watch<ProfileStore>();
     final avatar = profile.avatarUrl;
     final c = ZColors.of(context);
@@ -178,11 +228,184 @@ class _HomeTab extends StatelessWidget {
         Row(children: [
           Expanded(child: _StatCard(icon: CupertinoIcons.star_fill, value: '0', label: s.score, color: c.primary)),
           const SizedBox(width: 10),
-          Expanded(child: _StatCard(icon: CupertinoIcons.flame_fill, value: '0', label: s.streak, color: const Color(0xFFEA580C))),
+          Expanded(child: _StatCard(icon: CupertinoIcons.flame_fill, value: '0', label: s.streak, color: c.primary)),
           const SizedBox(width: 10),
-          Expanded(child: _StatCard(icon: CupertinoIcons.rosette, value: '#0', label: s.rank, color: const Color(0xFFEAB308))),
+          Expanded(child: _StatCard(icon: CupertinoIcons.rosette, value: '#0', label: s.rank, color: c.primary)),
         ]),
+        const SizedBox(height: 18),
+        _FeatureCard(
+          icon: CupertinoIcons.square_favorites_alt_fill,
+          title: t['lessons']!,
+          subtitle: t['lessonsSub']!,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _MiniCard(icon: CupertinoIcons.bubble_left_bubble_right_fill, title: t['chat']!, subtitle: t['chatSub']!)),
+            const SizedBox(width: 10),
+            Expanded(child: _MiniCard(icon: CupertinoIcons.compass_fill, title: t['practice']!, subtitle: t['practiceSub']!)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _StripCard(icon: CupertinoIcons.bookmark_fill, title: t['saved']!, subtitle: t['savedSub']!),
       ],
+    );
+  }
+}
+
+class _Pane extends StatelessWidget {
+  final Widget child;
+  final double? height;
+  const _Pane({required this.child, this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ZColors.of(context);
+    return Container(
+      height: height,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: c.surface.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 0.8),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  const _FeatureCard({required this.icon, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ZColors.of(context);
+    return _Pane(
+      height: 108,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -18,
+            top: -24,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: c.primary.withValues(alpha: 0.10)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: c.primary.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: c.primary, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(title, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700, fontSize: 17)),
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: TextStyle(color: c.textMuted, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(CupertinoIcons.chevron_forward, size: 16, color: c.textMuted),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  const _MiniCard({required this.icon, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ZColors.of(context);
+    return _Pane(
+      height: 118,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: c.primary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: c.primary, size: 18),
+            ),
+            const Spacer(),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
+            const SizedBox(height: 2),
+            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.textMuted, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StripCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  const _StripCard({required this.icon, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ZColors.of(context);
+    return _Pane(
+      height: 64,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: c.primary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: c.primary, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700, fontSize: 14.5)),
+                  Text(subtitle, style: TextStyle(color: c.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+            Icon(CupertinoIcons.chevron_forward, size: 16, color: c.textMuted),
+          ],
+        ),
+      ),
     );
   }
 }
