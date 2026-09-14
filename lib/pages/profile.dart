@@ -66,65 +66,13 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-  Map<String, String> _cardCopy(String code) {
-    switch (code) {
-      case 'ru':
-        return {
-          'lessons': 'Уроки',
-          'lessonsSub': '0 уроков',
-          'chat': 'Realtime chat',
-          'chatSub': 'Живой чат',
-          'practice': 'Практика',
-          'practiceSub': 'Упражнения',
-          'saved': 'Избранное',
-          'savedSub': 'Закладки',
-        };
-      case 'en':
-        return {
-          'lessons': 'Lessons',
-          'lessonsSub': '0 lessons',
-          'chat': 'Realtime chat',
-          'chatSub': 'Live messages',
-          'practice': 'Practice',
-          'practiceSub': 'Drills',
-          'saved': 'Saved',
-          'savedSub': 'Bookmarks',
-        };
-      case 'ja':
-        return {
-          'lessons': 'レッスン',
-          'lessonsSub': '0レッスン',
-          'chat': 'リアルタイムチャット',
-          'chatSub': '直接メッセージ',
-          'practice': '練習',
-          'practiceSub': '問題',
-          'saved': '保存',
-          'savedSub': 'ブックマーク',
-        };
-      default:
-        return {
-          'lessons': 'Darslar',
-          'lessonsSub': '0 ta dars',
-          'chat': 'Realtime chat',
-          'chatSub': 'Jonli suhbat',
-          'practice': 'Mashq',
-          'practiceSub': 'Mashqlar',
-          'saved': 'Saqlangan',
-          'savedSub': 'Belgilanganlar',
-        };
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LocaleProvider>().strings;
-    final code = context.watch<LocaleProvider>().locale.languageCode;
-    final t = _cardCopy(code);
     final profile = context.watch<ProfileStore>();
     final auth = AuthService.instance;
     final avatar = profile.avatarUrl ?? auth.avatarUrl;
     final c = ZColors.of(context);
-    final dark = context.watch<ThemeProvider>().isDark;
     return ListView(
       padding: PageGutters.of(context),
       physics: const BouncingScrollPhysics(),
@@ -195,60 +143,12 @@ class _ProfileTabState extends State<ProfileTab> {
             ],
           ),
         ),
-        const SizedBox(height: 22),
-        Row(
-          children: [
-            Expanded(
-              child: _GlassCard(
-                dark: dark,
-                icon: CupertinoIcons.book_fill,
-                color: const Color(0xFF3B82F6),
-                title: t['lessons']!,
-                subtitle: t['lessonsSub']!,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _GlassCard(
-                dark: dark,
-                icon: CupertinoIcons.chat_bubble_2_fill,
-                color: const Color(0xFF22C55E),
-                title: t['chat']!,
-                subtitle: t['chatSub']!,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _GlassCard(
-                dark: dark,
-                icon: CupertinoIcons.bolt_fill,
-                color: const Color(0xFFF59E0B),
-                title: t['practice']!,
-                subtitle: t['practiceSub']!,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _GlassCard(
-                dark: dark,
-                icon: CupertinoIcons.bookmark_fill,
-                color: const Color(0xFFA855F7),
-                title: t['saved']!,
-                subtitle: t['savedSub']!,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 26),
         Container(
           decoration: BoxDecoration(
             color: c.surface.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: c.border.withValues(alpha: 0.6)),
+            border: Border.all(color: c.border.withValues(alpha: 0.55), width: 0.7),
           ),
           child: CupertinoButton(
             padding: EdgeInsets.zero,
@@ -283,59 +183,6 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _GlassCard extends StatelessWidget {
-  final bool dark;
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-
-  const _GlassCard({
-    required this.dark,
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 122,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? [color.withValues(alpha: 0.22), const Color(0xFF11151F).withValues(alpha: 0.88)]
-              : [color.withValues(alpha: 0.16), Colors.white.withValues(alpha: 0.86)],
-        ),
-        border: Border.all(color: (dark ? Colors.white : color).withValues(alpha: dark ? 0.10 : 0.22), width: 0.8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const Spacer(),
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: dark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 14.5)),
-          const SizedBox(height: 2),
-          Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: dark ? const Color(0xFF9AA3B2) : const Color(0xFF64748B), fontSize: 12)),
-        ],
-      ),
     );
   }
 }
