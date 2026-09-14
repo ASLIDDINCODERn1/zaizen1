@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import 'package:zaizen/core/app_permissions.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/ui/app_theme.dart';
 
@@ -63,6 +64,11 @@ Map<String, String> hubCopy(String code) {
 class HomeHubSection extends StatelessWidget {
   const HomeHubSection({super.key});
 
+  Future<void> _openChat(BuildContext context) async {
+    final ok = await AppPermissions.ensure(context, AppPermissionKind.microphone);
+    if (!ok || !context.mounted) return;
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = hubCopy(context.watch<LocaleProvider>().locale.languageCode);
@@ -77,7 +83,11 @@ class HomeHubSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _ChatCard(title: t['chat']!, subtitle: t['chatSub']!),
+              child: _ChatCard(
+                title: t['chat']!,
+                subtitle: t['chatSub']!,
+                onTap: () => _openChat(context),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -103,12 +113,13 @@ class HomeHubSection extends StatelessWidget {
 class _Pane extends StatelessWidget {
   final Widget child;
   final double? height;
-  const _Pane({required this.child, this.height});
+  final VoidCallback? onTap;
+  const _Pane({required this.child, this.height, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final c = ZColors.of(context);
-    return Container(
+    final pane = Container(
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -118,6 +129,8 @@ class _Pane extends StatelessWidget {
       ),
       child: child,
     );
+    if (onTap == null) return pane;
+    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: pane);
   }
 }
 
@@ -200,13 +213,15 @@ class _FeatureCard extends StatelessWidget {
 class _ChatCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _ChatCard({required this.title, required this.subtitle});
+  final VoidCallback onTap;
+  const _ChatCard({required this.title, required this.subtitle, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final c = ZColors.of(context);
     return _Pane(
       height: 118,
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
         child: Column(
