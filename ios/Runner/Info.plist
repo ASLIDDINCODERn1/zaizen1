@@ -39,10 +39,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Chatda ovozli xabar yuborish uchun mikrofonga ruxsat kerak.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil rasmini tanlash uchun galereyaga ruxsat kerak.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Profil rasmini olish uchun kameraga ruxsat kerak.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Ilovani tez ochish uchun Face ID ishlatiladi.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
