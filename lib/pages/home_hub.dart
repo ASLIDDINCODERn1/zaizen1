@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:zaizen/core/app_permissions.dart';
 import 'package:zaizen/locale_provider.dart';
+import 'package:zaizen/pages/lessons/lessons_path.dart';
 import 'package:zaizen/ui/app_theme.dart';
 
 Map<String, String> hubCopy(String code) {
@@ -69,6 +70,10 @@ class HomeHubSection extends StatelessWidget {
     if (!ok || !context.mounted) return;
   }
 
+  void _openLessons(BuildContext context) {
+    Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const LessonsPathScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = hubCopy(context.watch<LocaleProvider>().locale.languageCode);
@@ -78,6 +83,7 @@ class HomeHubSection extends StatelessWidget {
           icon: CupertinoIcons.square_favorites_alt_fill,
           title: t['lessons']!,
           subtitle: t['lessonsSub']!,
+          onTap: () => _openLessons(context),
         ),
         const SizedBox(height: 10),
         Row(
@@ -157,13 +163,15 @@ class _FeatureCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  const _FeatureCard({required this.icon, required this.title, required this.subtitle});
+  final VoidCallback onTap;
+  const _FeatureCard({required this.icon, required this.title, required this.subtitle, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final c = ZColors.of(context);
     return _Pane(
       height: 108,
+      onTap: onTap,
       child: Stack(
         children: [
           Positioned(
