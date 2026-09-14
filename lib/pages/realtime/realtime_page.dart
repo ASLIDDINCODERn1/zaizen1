@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:zaizen/locale_provider.dart';
 import 'package:zaizen/ui/app_theme.dart';
@@ -12,10 +13,11 @@ class RealtimePage extends StatefulWidget {
   State<RealtimePage> createState() => _RealtimePageState();
 }
 
-class _RealtimePageState extends State<RealtimePage> {
+class _RealtimePageState extends State<RealtimePage> with WidgetsBindingObserver {
   CameraController? _controller;
   List<CameraDescription> _cameras = const [];
   int _index = 0;
+  int _gen = 0;
   bool _camOn = true;
   bool _micOn = true;
   bool _settingsOpen = true;
@@ -38,14 +40,41 @@ class _RealtimePageState extends State<RealtimePage> {
   @override
   void initState() {
     super.initState();
-    _boot();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _boot();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    if (state == AppLifecycleState.inactive) {
+      controller.dispose();
+      _controller = null;
+    } else if (state == AppLifecycleState.resumed && _camOn) {
+      _openCamera();
+    }
   }
 
   Future<void> _boot() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
+    final cam = await Permission.camera.request();
+    final mic = await Permission.microphone.request();
+    if (!mounted) return;
+    if (!cam.isGranted) {
+      setState(() {
+        _loading = false;
+        _error = 'camera';
+      });
+      return;
+    }
+    _micOn = mic.isGranted;
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
@@ -68,21 +97,59 @@ class _RealtimePageState extends State<RealtimePage> {
   }
 
   Future<void> _openCamera() async {
-    await _controller?.dispose();
-    final cam = _cameras[_index];
-    final next = CameraController(
-      cam,
-      ResolutionPreset.medium,
-      enableAudio: _micOn,
-      imageFormatGroup: ImageFormatGroup.yuv420,
-    );
-    _controller = next;
-    await next.initialize();
-    if (!mounted) {
-      await next.dispose();
-      return;
+    if (_cameras.isEmpty) return;
+    final gen = ++_gen;
+    final old = _controller;
+    _controller = null;
+    await old?.dispose();
+    if (!mounted || gen != _gen) return;
+
+    Future<CameraController> create(bool audio) async {
+      final next = CameraController(
+        _cameras[_index],
+        ResolutionPreset.medium,
+        enableAudio: audio,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
+      await next.initialize();
+      await next.lockCaptureOrientation(DeviceOrientation.portraitUp);
+      return next;
     }
-    setState(() => _loading = false);
+
+    try {
+      var next = await create(_micOn);
+      if (!mounted || gen != _gen) {
+        await next.dispose();
+        return;
+      }
+      setState(() {
+        _controller = next;
+        _loading = false;
+        _error = null;
+        _camOn = true;
+      });
+    } catch (_) {
+      try {
+        final next = await create(false);
+        if (!mounted || gen != _gen) {
+          await next.dispose();
+          return;
+        }
+        setState(() {
+          _controller = next;
+          _loading = false;
+          _error = null;
+          _camOn = true;
+          _micOn = false;
+        });
+      } catch (_) {
+        if (!mounted || gen != _gen) return;
+        setState(() {
+          _loading = false;
+          _error = 'fail';
+        });
+      }
+    }
   }
 
   Future<void> _flip() async {
@@ -97,19 +164,28 @@ class _RealtimePageState extends State<RealtimePage> {
   Future<void> _toggleCam() async {
     if (_camOn) {
       setState(() => _camOn = false);
-      await _controller?.pausePreview();
+      try {
+        await _controller?.pausePreview();
+      } catch (_) {}
       return;
     }
-    setState(() => _camOn = true);
-    if (_controller == null || !(_controller!.value.isInitialized)) {
-      await _openCamera();
-      return;
+    setState(() {
+      _camOn = true;
+      _loading = true;
+    });
+    final controller = _controller;
+    if (controller != null && controller.value.isInitialized) {
+      try {
+        await controller.resumePreview();
+        if (mounted) setState(() => _loading = false);
+        return;
+      } catch (_) {}
     }
-    await _controller!.resumePreview();
-    if (mounted) setState(() {});
+    await _openCamera();
   }
 
   Future<void> _toggleMic() async {
+    if (_loading) return;
     setState(() {
       _micOn = !_micOn;
       _loading = true;
@@ -119,6 +195,8 @@ class _RealtimePageState extends State<RealtimePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _gen++;
     _controller?.dispose();
     super.dispose();
   }
@@ -127,22 +205,16 @@ class _RealtimePageState extends State<RealtimePage> {
   Widget build(BuildContext context) {
     final c = ZColors.of(context);
     final t = _t(context.watch<LocaleProvider>().locale.languageCode);
-    final ready = _controller != null && _controller!.value.isInitialized && _camOn && _error == null;
+    final controller = _controller;
+    final ready = controller != null && controller.value.isInitialized && _camOn && _error == null && !_loading;
 
     return Scaffold(
-      backgroundColor: c.bgBottom,
+      backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
           if (ready)
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller!.value.previewSize?.height ?? 720,
-                height: _controller!.value.previewSize?.width ?? 1280,
-                child: CameraPreview(_controller!),
-              ),
-            )
+            _FullPreview(controller: controller)
           else
             Container(
               decoration: BoxDecoration(
@@ -211,6 +283,37 @@ class _RealtimePageState extends State<RealtimePage> {
   }
 }
 
+class _FullPreview extends StatelessWidget {
+  final CameraController controller;
+  const _FullPreview({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final preview = controller.value.previewSize;
+    final aspect = preview == null || preview.height == 0
+        ? controller.value.aspectRatio
+        : preview.height / preview.width;
+    return ColoredBox(
+      color: Colors.black,
+      child: ClipRect(
+        child: OverflowBox(
+          maxWidth: double.infinity,
+          maxHeight: double.infinity,
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: size.width,
+              height: size.width * (aspect == 0 ? 16 / 9 : aspect),
+              child: CameraPreview(controller),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SideSettings extends StatelessWidget {
   final bool open;
   final bool camOn;
@@ -250,7 +353,7 @@ class _SideSettings extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _RoundBtn(icon: CupertinoIcons.switch_camera_solid, onTap: onFlip),
+                _RoundBtn(icon: CupertinoIcons.switch_camera, onTap: onFlip),
                 const SizedBox(height: 10),
                 _RoundBtn(
                   icon: camOn ? CupertinoIcons.video_camera_solid : CupertinoIcons.video_camera,
