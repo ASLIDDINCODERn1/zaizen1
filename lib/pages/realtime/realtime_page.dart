@@ -250,10 +250,10 @@ class _SideSettings extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _RoundBtn(icon: CupertinoIcons.camera_rotate_fill, onTap: onFlip),
+                _RoundBtn(icon: CupertinoIcons.switch_camera_solid, onTap: onFlip),
                 const SizedBox(height: 10),
                 _RoundBtn(
-                  icon: camOn ? CupertinoIcons.video_camera_solid : CupertinoIcons.videocam_off_fill,
+                  icon: camOn ? CupertinoIcons.video_camera_solid : CupertinoIcons.video_camera,
                   active: camOn,
                   onTap: onCam,
                 ),
